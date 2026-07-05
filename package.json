@@ -33,6 +33,9 @@
   "build": {
     "appId": "dev.oolong.app",
     "productName": "oolong",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",

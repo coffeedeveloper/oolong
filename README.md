@@ -18,6 +18,17 @@ npm run build
 npm run package
 ```
 
+## Release
+
+GitHub Actions creates a macOS release package when a version tag is pushed.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow uploads `.dmg` and `.zip` artifacts from `release/`.
+
 ## Features
 
 - Configure reusable contexts such as translation, optimization, or project-specific rewrites.
