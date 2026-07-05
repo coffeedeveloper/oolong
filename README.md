@@ -38,8 +38,8 @@ Settings are organized into focused tabs for day-to-day configuration and provid
 ## Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 The browser preview uses a local mock API for UI work. The Electron app uses the real IPC and CLI execution path.
@@ -47,8 +47,8 @@ The browser preview uses a local mock API for UI work. The Electron app uses the
 ## Build
 
 ```bash
-npm run build
-npm run package
+pnpm build
+pnpm package
 ```
 
 Packaged macOS artifacts are written to `release/`.

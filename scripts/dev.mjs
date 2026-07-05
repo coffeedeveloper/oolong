@@ -14,8 +14,8 @@ await server.listen();
 
 const info = server.resolvedUrls?.local?.[0] ?? "http://127.0.0.1:5173/";
 const electron = spawn(
-  process.platform === "win32" ? "npx.cmd" : "npx",
-  ["electron", "."],
+  process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+  ["exec", "electron", "."],
   {
     stdio: "inherit",
     env: {

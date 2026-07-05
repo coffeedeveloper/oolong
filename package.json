@@ -2,11 +2,12 @@
   "name": "oolong",
   "version": "0.2.0",
   "description": "A macOS desktop client for translation and native English optimization.",
+  "packageManager": "pnpm@11.7.0",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "tsc -b && vite build",
-    "package": "npm run build && electron-builder",
+    "package": "pnpm build && electron-builder",
     "lint": "tsc -b --noEmit"
   },
   "keywords": [
