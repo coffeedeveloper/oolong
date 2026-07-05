@@ -1,5 +1,46 @@
 # Release Notes
 
+## v0.2.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.2.0
+
+oolong v0.2.0 focuses on interaction polish, settings usability, and a more flexible main window layout. It improves provider model selection, adds faster main-screen actions, and makes the history sidebar more ergonomic on narrow window widths.
+
+### Downloads
+
+- `oolong-0.2.0-arm64.dmg`
+- `oolong-0.2.0-arm64-mac.zip`
+
+### Included Features
+
+- Added preset model pickers for Codex and Claude provider settings.
+- Added custom model input support when the desired model is not in the preset list.
+- Added main-screen `Clear` action for clearing input, output, error, and copied state.
+- Added icons for Clear, Submit, Copy, Copied, Settings, History Clear, and loading states.
+- Added hover states across primary, secondary, segmented, icon, history, shortcut, and settings buttons.
+- Added draggable history sidebar resizing with minimum and maximum width constraints.
+- Added keyboard support for sidebar resizing with arrow keys, Home, and End.
+- Added titlebar control for collapsing and expanding the history sidebar.
+- Added `/` keyboard shortcut to focus the main textarea when the user is not already typing in another control.
+- Allowed the main textarea and output area to fill the available main-pane width.
+- Reduced the minimum app window width for a more compact desktop layout.
+
+### Fixes And Reliability
+
+- Fixed settings model layout so custom model input no longer stretches the Codex reasoning-effort control.
+- Fixed segmented control selected colors to better match the app palette.
+- Fixed sidebar divider visual artifacts by rendering a 1px divider with a wider invisible drag target.
+- Fixed sidebar divider stacking so it no longer appears above the Settings modal.
+- Fixed narrow-width layout behavior so the main screen keeps the left/right structure instead of switching to a vertical layout.
+- Reduced narrow-width layout jitter by removing breakpoint-driven spacing changes in the main screen.
+- Kept the History Clear button aligned to the right of the History title at narrow sidebar widths.
+
+### Notes
+
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.1.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.1.0

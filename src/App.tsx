@@ -1,4 +1,20 @@
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  CSSProperties,
+  FormEvent,
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent
+} from "react";
+import {
+  Check,
+  Copy,
+  LoaderCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Send,
+  Settings as SettingsIcon,
+  Trash2
+} from "lucide-react";
 import { api } from "./api";
 import {
   contextDisplayLabel,
@@ -51,6 +67,48 @@ const fallbackSettings: Settings = {
   allProxy: "socks5://127.0.0.1:7890",
   contexts: defaultContexts
 };
+
+type ModelOption = {
+  value: string;
+  label: string;
+};
+
+const customModelValue = "__custom__";
+const defaultHistoryWidth = 236;
+const minHistoryWidth = 150;
+const maxHistoryWidth = 420;
+const minMainWidth = 360;
+
+const codexModelOptions: ModelOption[] = [
+  { value: "gpt-5.5", label: "GPT-5.5" },
+  { value: "gpt-5.4", label: "GPT-5.4" },
+  { value: "gpt-5.4-mini", label: "GPT-5.4 mini" },
+  { value: "gpt-5.4-nano", label: "GPT-5.4 nano" }
+];
+
+const claudeModelOptions: ModelOption[] = [
+  { value: "claude-fable-5", label: "Claude Fable 5" },
+  { value: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { value: "claude-sonnet-5", label: "Claude Sonnet 5" },
+  { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" }
+];
+
+function clampHistoryWidth(value: number) {
+  const availableWidth =
+    typeof window === "undefined" ? maxHistoryWidth : window.innerWidth - minMainWidth - 1;
+  const responsiveMaxWidth = Math.max(minHistoryWidth, Math.min(maxHistoryWidth, availableWidth));
+  return Math.min(responsiveMaxWidth, Math.max(minHistoryWidth, Math.round(value)));
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest("input, textarea, select, button, [contenteditable='true'], [role='textbox']")
+  );
+}
 
 function createContextId() {
   return `context-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -160,6 +218,57 @@ function shortcutFromKeyboardEvent(event: KeyboardEvent<HTMLElement>) {
   }
 
   return [...parts, key].join("+");
+}
+
+function ModelPicker({
+  value,
+  options,
+  text,
+  onChange
+}: {
+  value: string;
+  options: ModelOption[];
+  text: ReturnType<typeof getUiText>;
+  onChange: (value: string) => void;
+}) {
+  const [customMode, setCustomMode] = useState(
+    Boolean(value) && !options.some((option) => option.value === value)
+  );
+  const isKnownValue = options.some((option) => option.value === value);
+  const selectValue = customMode || (value && !isKnownValue) ? customModelValue : value || "";
+
+  return (
+    <div className="model-picker">
+      <select
+        value={selectValue}
+        onChange={(event) => {
+          if (event.target.value === customModelValue) {
+            setCustomMode(true);
+            return;
+          }
+
+          setCustomMode(false);
+          onChange(event.target.value);
+        }}
+      >
+        <option value="">{text.provider.defaultValue}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+        <option value={customModelValue}>{text.provider.customModel}</option>
+      </select>
+
+      {selectValue === customModelValue ? (
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={text.provider.customModelPlaceholder}
+        />
+      ) : null}
+    </div>
+  );
 }
 
 type SettingsTab = "general" | "provider" | "contexts" | "proxy";
@@ -448,12 +557,13 @@ function SettingsModal({
                     <div className="provider-grid">
                       <label className="field">
                         <span>{text.provider.model}</span>
-                        <input
+                        <ModelPicker
                           value={draft.codexModel}
-                          onChange={(event) =>
-                            setDraft((current) => ({ ...current, codexModel: event.target.value }))
+                          options={codexModelOptions}
+                          text={text}
+                          onChange={(model) =>
+                            setDraft((current) => ({ ...current, codexModel: model }))
                           }
-                          placeholder={text.provider.defaultValue}
                         />
                       </label>
 
@@ -505,12 +615,13 @@ function SettingsModal({
 
                     <label className="field">
                       <span>{text.provider.model}</span>
-                      <input
+                      <ModelPicker
                         value={draft.claudeModel}
-                        onChange={(event) =>
-                          setDraft((current) => ({ ...current, claudeModel: event.target.value }))
+                        options={claudeModelOptions}
+                        text={text}
+                        onChange={(model) =>
+                          setDraft((current) => ({ ...current, claudeModel: model }))
                         }
-                        placeholder={text.provider.defaultValue}
                       />
                     </label>
                   </section>
@@ -659,7 +770,8 @@ function HistoryList({
       <div className="history-header">
         <h2>{text.history.title}</h2>
         <button type="button" onClick={onClear} disabled={history.length === 0}>
-          {text.history.clear}
+          <Trash2 size={15} aria-hidden="true" />
+          <span>{text.history.clear}</span>
         </button>
       </div>
 
@@ -687,7 +799,8 @@ function HistoryList({
       </div>
 
       <button className="settings-button" type="button" onClick={onOpenSettings}>
-        {text.history.settings}
+        <SettingsIcon size={16} aria-hidden="true" />
+        <span>{text.history.settings}</span>
       </button>
     </aside>
   );
@@ -705,7 +818,11 @@ function App() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [historyWidth, setHistoryWidth] = useState(defaultHistoryWidth);
+  const [resizingHistory, setResizingHistory] = useState(false);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const resizeStartRef = useRef({ x: 0, width: defaultHistoryWidth });
 
   const text = getUiText(settings.uiLanguage);
   const selectedText = selectedEntry ? selectedEntry.output : output;
@@ -714,6 +831,7 @@ function App() {
     settings.contexts[0] ??
     defaultContexts[0];
   const canSubmit = input.trim().length > 0 && !loading && Boolean(activeContext);
+  const canClear = Boolean(input || output || error || selectedEntry) && !loading;
 
   useEffect(() => {
     let mounted = true;
@@ -792,6 +910,104 @@ function App() {
     setSelectedContextId(settings.contexts[0]?.id ?? "translate");
   }, [selectedContextId, settings.contexts]);
 
+  useEffect(() => {
+    function handleSlashFocus(event: globalThis.KeyboardEvent) {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (settingsOpen || selectedEntry || isTypingTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      textAreaRef.current?.focus();
+    }
+
+    window.addEventListener("keydown", handleSlashFocus);
+    return () => window.removeEventListener("keydown", handleSlashFocus);
+  }, [selectedEntry, settingsOpen]);
+
+  useEffect(() => {
+    if (!resizingHistory) {
+      return undefined;
+    }
+
+    const originalCursor = document.body.style.cursor;
+    const originalUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    function handlePointerMove(event: PointerEvent) {
+      const nextWidth = resizeStartRef.current.width + event.clientX - resizeStartRef.current.x;
+      setHistoryWidth(clampHistoryWidth(nextWidth));
+    }
+
+    function handlePointerEnd() {
+      setResizingHistory(false);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerEnd, { once: true });
+    window.addEventListener("pointercancel", handlePointerEnd, { once: true });
+
+    return () => {
+      document.body.style.cursor = originalCursor;
+      document.body.style.userSelect = originalUserSelect;
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", handlePointerEnd);
+    };
+  }, [resizingHistory]);
+
+  function handleHistoryResizePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (historyCollapsed) {
+      return;
+    }
+
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    resizeStartRef.current = {
+      x: event.clientX,
+      width: historyWidth
+    };
+    setResizingHistory(true);
+  }
+
+  function handleHistoryResizeKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (historyCollapsed) {
+      return;
+    }
+
+    const step = event.shiftKey ? 32 : 12;
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setHistoryWidth((current) => clampHistoryWidth(current - step));
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setHistoryWidth((current) => clampHistoryWidth(current + step));
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      setHistoryWidth(minHistoryWidth);
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      setHistoryWidth(maxHistoryWidth);
+    }
+  }
+
   async function submitRequest(contextId: string, requestInput: string) {
     setError("");
     setCopied(false);
@@ -833,6 +1049,15 @@ function App() {
     setSelectedEntry(null);
   }
 
+  function handleClearMain() {
+    setInput("");
+    setOutput("");
+    setError("");
+    setCopied(false);
+    setSelectedEntry(null);
+    requestAnimationFrame(() => textAreaRef.current?.focus());
+  }
+
   async function handleCopy() {
     if (!selectedText.trim()) {
       return;
@@ -855,21 +1080,63 @@ function App() {
   return (
     <div className="shell">
       <header className="titlebar">
-        <div className="traffic-spacer" />
+        <div className="titlebar-left">
+          <div className="traffic-spacer" />
+          <button
+            className="titlebar-button"
+            type="button"
+            aria-label={historyCollapsed ? text.history.showSidebar : text.history.hideSidebar}
+            aria-expanded={!historyCollapsed}
+            title={historyCollapsed ? text.history.showSidebar : text.history.hideSidebar}
+            onClick={() => {
+              setHistoryCollapsed((current) => !current);
+              setResizingHistory(false);
+            }}
+          >
+            {historyCollapsed ? (
+              <PanelLeftOpen size={16} aria-hidden="true" />
+            ) : (
+              <PanelLeftClose size={16} aria-hidden="true" />
+            )}
+          </button>
+        </div>
         <h1>oolong</h1>
         <div className="provider-pill">{settings.provider}</div>
       </header>
 
-      <div className="workspace">
-        <HistoryList
-          history={history}
-          selectedId={selectedEntry?.id}
-          language={settings.uiLanguage}
-          text={text}
-          onSelect={setSelectedEntry}
-          onClear={handleClearHistory}
-          onOpenSettings={() => setSettingsOpen(true)}
-        />
+      <div
+        className={`workspace ${resizingHistory ? "resizing-sidebar" : ""} ${
+          historyCollapsed ? "history-collapsed" : ""
+        }`}
+        style={{ "--history-width": `${historyWidth}px` } as CSSProperties}
+      >
+        {!historyCollapsed ? (
+          <>
+            <HistoryList
+              history={history}
+              selectedId={selectedEntry?.id}
+              language={settings.uiLanguage}
+              text={text}
+              onSelect={setSelectedEntry}
+              onClear={handleClearHistory}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+
+            <div
+              className="sidebar-resizer"
+              role="separator"
+              aria-label={text.history.resizeSidebar}
+              aria-orientation="vertical"
+              aria-valuemin={minHistoryWidth}
+              aria-valuemax={maxHistoryWidth}
+              aria-valuenow={historyWidth}
+              tabIndex={0}
+              title={text.history.resizeSidebar}
+              onPointerDown={handleHistoryResizePointerDown}
+              onKeyDown={handleHistoryResizeKeyDown}
+            />
+          </>
+        ) : null}
 
         <main className="main-pane">
           {selectedEntry ? (
@@ -896,7 +1163,8 @@ function App() {
               </div>
 
               <button className="copy-button detail-copy" type="button" onClick={handleCopy}>
-                {copied ? text.main.copied : text.main.copy}
+                {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                <span>{copied ? text.main.copied : text.main.copy}</span>
               </button>
             </section>
           ) : (
@@ -925,9 +1193,25 @@ function App() {
                     })}
                     autoFocus
                   />
-                  <button className="submit-button" type="submit" disabled={!canSubmit}>
-                    {loading ? text.main.working : text.main.submit}
-                  </button>
+                  <div className="input-actions">
+                    <button
+                      className="input-clear-button"
+                      type="button"
+                      onClick={handleClearMain}
+                      disabled={!canClear}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      <span>{text.main.clear}</span>
+                    </button>
+                    <button className="submit-button" type="submit" disabled={!canSubmit}>
+                      {loading ? (
+                        <LoaderCircle className="button-spinner" size={16} aria-hidden="true" />
+                      ) : (
+                        <Send size={16} aria-hidden="true" />
+                      )}
+                      <span>{loading ? text.main.working : text.main.submit}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
 
@@ -943,7 +1227,8 @@ function App() {
                     onClick={handleCopy}
                     disabled={!selectedText.trim()}
                   >
-                    {copied ? text.main.copied : text.main.copy}
+                    {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                    <span>{copied ? text.main.copied : text.main.copy}</span>
                   </button>
                 </div>
 

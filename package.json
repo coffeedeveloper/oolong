@@ -1,6 +1,6 @@
 {
   "name": "oolong",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A macOS desktop client for translation and native English optimization.",
   "main": "electron/main.cjs",
   "scripts": {
@@ -17,6 +17,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "lucide-react": "^1.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

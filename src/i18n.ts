@@ -45,6 +45,8 @@ export const translations = {
       claudeExecutable: "Claude executable",
       model: "Model",
       defaultValue: "Default",
+      customModel: "Custom",
+      customModelPlaceholder: "Enter model ID",
       reasoningEffort: "Reasoning effort",
       profile: "Profile"
     },
@@ -79,12 +81,16 @@ export const translations = {
       empty: "No history yet",
       untitled: "Untitled text",
       noOutput: "No output",
-      settings: "Settings"
+      settings: "Settings",
+      resizeSidebar: "Resize history sidebar",
+      hideSidebar: "Hide history sidebar",
+      showSidebar: "Show history sidebar"
     },
     main: {
       chooseContext: "Choose context",
       pasteFor: "Paste text for {context}...",
       submit: "Submit",
+      clear: "Clear",
       working: "Working...",
       output: "Output",
       result: "Result",
@@ -138,6 +144,8 @@ export const translations = {
       claudeExecutable: "Claude 可执行文件",
       model: "模型",
       defaultValue: "默认",
+      customModel: "自定义",
+      customModelPlaceholder: "输入模型 ID",
       reasoningEffort: "推理强度",
       profile: "Profile"
     },
@@ -172,12 +180,16 @@ export const translations = {
       empty: "暂无历史记录",
       untitled: "未命名文本",
       noOutput: "无输出",
-      settings: "设置"
+      settings: "设置",
+      resizeSidebar: "调整历史记录侧边栏宽度",
+      hideSidebar: "隐藏历史记录侧边栏",
+      showSidebar: "显示历史记录侧边栏"
     },
     main: {
       chooseContext: "选择场景",
       pasteFor: "粘贴文本用于{context}...",
       submit: "提交",
+      clear: "清空",
       working: "处理中...",
       output: "输出",
       result: "结果",
