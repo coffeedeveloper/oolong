@@ -34,6 +34,16 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          name: oolong ${{ github.ref_name }}
+          body: |
+            ## Downloads
+
+            Download the macOS DMG or ZIP from the assets below.
+
+            ## Notes
+
+            This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+          generate_release_notes: true
           files: |
             release/*.dmg
             release/*.zip
