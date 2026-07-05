@@ -1,4 +1,5 @@
 import type { HistoryEntry, OolongApi, PromptContext, RunRequest, Settings } from "./types";
+import { contextDisplayLabel, getUiText, normalizeUiLanguage } from "./i18n";
 
 const storageKey = "oolong-preview-store";
 
@@ -27,6 +28,7 @@ const defaultContexts: PromptContext[] = [
 ];
 
 const fallbackSettings: Settings = {
+  uiLanguage: "en",
   provider: "codex",
   codexExecutable: "codex",
   codexModel: "",
@@ -93,6 +95,7 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
   return {
     ...fallbackSettings,
     ...value,
+    uiLanguage: normalizeUiLanguage(value.uiLanguage),
     provider: value.provider === "claude" ? "claude" : "codex",
     codexExecutable:
       typeof value.codexExecutable === "string" && value.codexExecutable.trim()
@@ -157,8 +160,12 @@ function findContext(settings: Settings, contextId: string) {
   );
 }
 
-function previewText(context: PromptContext, input: string) {
-  return `[Preview ${context.label}]\n${input.trim()}`;
+function previewText(context: PromptContext, input: string, settings: Settings) {
+  const text = getUiText(settings.uiLanguage);
+  const label = contextDisplayLabel(context, text);
+  const prefix = settings.uiLanguage === "zh" ? `【预览 ${label}】` : `[Preview ${label}]`;
+
+  return `${prefix}\n${input.trim()}`;
 }
 
 const previewApi: OolongApi = {
@@ -198,7 +205,7 @@ const previewApi: OolongApi = {
   async runAction(request) {
     const store = readPreviewStore();
     const context = findContext(store.settings, request.contextId);
-    const output = previewText(context, request.input);
+    const output = previewText(context, request.input, store.settings);
     const entry: HistoryEntry = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       contextId: context.id,
@@ -225,6 +232,9 @@ const previewApi: OolongApi = {
     return () => undefined;
   },
   onOpenSettings() {
+    return () => undefined;
+  },
+  onServiceInput() {
     return () => undefined;
   }
 };

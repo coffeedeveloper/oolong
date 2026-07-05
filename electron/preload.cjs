@@ -17,5 +17,10 @@ contextBridge.exposeInMainWorld("oolong", {
     const listener = () => callback();
     ipcRenderer.on("open-settings", listener);
     return () => ipcRenderer.removeListener("open-settings", listener);
+  },
+  onServiceInput: (callback) => {
+    const listener = (_, request) => callback(request);
+    ipcRenderer.on("service-input", listener);
+    return () => ipcRenderer.removeListener("service-input", listener);
   }
 });

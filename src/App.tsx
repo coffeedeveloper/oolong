@@ -1,5 +1,13 @@
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
+import {
+  contextDisplayLabel,
+  formatDate,
+  formatText,
+  getUiText,
+  historyDisplayLabel,
+  languageOptions
+} from "./i18n";
 import type { HistoryEntry, PromptContext, Settings } from "./types";
 
 const defaultContexts: PromptContext[] = [
@@ -27,6 +35,7 @@ const defaultContexts: PromptContext[] = [
 ];
 
 const fallbackSettings: Settings = {
+  uiLanguage: "en",
   provider: "codex",
   codexExecutable: "codex",
   codexModel: "",
@@ -43,31 +52,6 @@ const fallbackSettings: Settings = {
   contexts: defaultContexts
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
-}
-
-function legacyModeLabel(mode?: string) {
-  if (mode === "translate") {
-    return "translate";
-  }
-
-  if (mode === "optimize") {
-    return "optimize";
-  }
-
-  return mode || "context";
-}
-
-function historyContextLabel(entry: HistoryEntry) {
-  return entry.contextLabel || legacyModeLabel(entry.mode);
-}
-
 function createContextId() {
   return `context-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
@@ -78,19 +62,28 @@ function formatDuration(seconds: number) {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-function loadingMessage(provider: string, elapsedSeconds: number, timeoutSeconds: number) {
+function loadingMessage(
+  provider: string,
+  elapsedSeconds: number,
+  timeoutSeconds: number,
+  text: ReturnType<typeof getUiText>
+) {
   const elapsed = formatDuration(elapsedSeconds);
   const remainingSeconds = Math.max(0, timeoutSeconds - elapsedSeconds);
 
   if (elapsedSeconds >= Math.floor(timeoutSeconds * 0.75)) {
-    return `${provider} is still running. Elapsed ${elapsed}; timeout in ${remainingSeconds}s. Check proxy/network settings if this keeps happening.`;
+    return formatText(text.loading.nearlyTimedOut, {
+      provider,
+      elapsed,
+      remaining: remainingSeconds
+    });
   }
 
   if (elapsedSeconds >= 15) {
-    return `${provider} is still running. Elapsed ${elapsed}. Long text or provider network latency can take a while.`;
+    return formatText(text.loading.slow, { provider, elapsed });
   }
 
-  return `Running ${provider}... elapsed ${elapsed}.`;
+  return formatText(text.loading.running, { provider, elapsed });
 }
 
 const modifierKeys = new Set(["Alt", "Control", "Meta", "Shift"]);
@@ -171,13 +164,6 @@ function shortcutFromKeyboardEvent(event: KeyboardEvent<HTMLElement>) {
 
 type SettingsTab = "general" | "provider" | "contexts" | "proxy";
 
-const settingsTabs: Array<{ id: SettingsTab; label: string }> = [
-  { id: "general", label: "General" },
-  { id: "provider", label: "Provider" },
-  { id: "contexts", label: "Contexts" },
-  { id: "proxy", label: "Proxy" }
-];
-
 function SettingsModal({
   settings,
   onClose,
@@ -191,7 +177,15 @@ function SettingsModal({
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [recordingShortcut, setRecordingShortcut] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contextError, setContextError] = useState("");
   const shortcutButtonRef = useRef<HTMLButtonElement>(null);
+  const text = getUiText(draft.uiLanguage);
+  const settingsTabs: Array<{ id: SettingsTab; label: string }> = [
+    { id: "general", label: text.tabs.general },
+    { id: "provider", label: text.tabs.provider },
+    { id: "contexts", label: text.tabs.contexts },
+    { id: "proxy", label: text.tabs.proxy }
+  ];
 
   useEffect(() => {
     if (recordingShortcut) {
@@ -200,6 +194,7 @@ function SettingsModal({
   }, [recordingShortcut]);
 
   function updateContext(id: string, patch: Partial<PromptContext>) {
+    setContextError("");
     setDraft((current) => ({
       ...current,
       contexts: current.contexts.map((context) =>
@@ -214,11 +209,12 @@ function SettingsModal({
   }
 
   function addContext() {
+    setContextError("");
     const contextNumber = draft.contexts.length + 1;
     const nextContext: PromptContext = {
       id: createContextId(),
-      label: `context ${contextNumber}`,
-      prompt: "Process the user text according to this context. Return only the result."
+      label: `${text.contexts.defaultLabel} ${contextNumber}`,
+      prompt: text.contexts.defaultPrompt
     };
 
     setDraft((current) => ({
@@ -228,12 +224,15 @@ function SettingsModal({
   }
 
   function deleteContext(id: string) {
+    if (draft.contexts.length <= 1) {
+      setContextError(text.contexts.cannotDeleteLast);
+      return;
+    }
+
+    setContextError("");
     setDraft((current) => ({
       ...current,
-      contexts:
-        current.contexts.length > 1
-          ? current.contexts.filter((context) => context.id !== id)
-          : current.contexts
+      contexts: current.contexts.filter((context) => context.id !== id)
     }));
   }
 
@@ -267,6 +266,12 @@ function SettingsModal({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (draft.contexts.length < 1) {
+      setActiveTab("contexts");
+      setContextError(text.contexts.minimumRequired);
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave(draft);
@@ -281,16 +286,16 @@ function SettingsModal({
       <form className="settings-modal" onSubmit={handleSubmit}>
         <div className="modal-header">
           <div>
-            <h2>Settings</h2>
-            <p>Provider, contexts, proxy, shortcut, and history size.</p>
+            <h2>{text.settings.title}</h2>
+            <p>{text.settings.description}</p>
           </div>
-          <button className="icon-button" type="button" aria-label="Close settings" onClick={onClose}>
+          <button className="icon-button" type="button" aria-label={text.settings.closeLabel} onClick={onClose}>
             x
           </button>
         </div>
 
         <div className="settings-layout">
-          <nav className="settings-tabs" aria-label="Settings sections">
+          <nav className="settings-tabs" aria-label={text.settings.sectionsLabel}>
             {settingsTabs.map((tab) => (
               <button
                 type="button"
@@ -308,14 +313,33 @@ function SettingsModal({
               <section className="settings-section">
                 <div className="section-heading">
                   <div>
-                    <h3>General</h3>
-                    <p>Shortcuts, history, and timeout behavior.</p>
+                    <h3>{text.general.title}</h3>
+                    <p>{text.general.description}</p>
                   </div>
                 </div>
 
                 <div className="settings-grid">
                   <label className="field">
-                    <span>Global shortcut</span>
+                    <span>{text.general.language}</span>
+                    <select
+                      value={draft.uiLanguage}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          uiLanguage: event.target.value === "zh" ? "zh" : "en"
+                        }))
+                      }
+                    >
+                      {languageOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="field shortcut-field">
+                    <span>{text.general.globalShortcut}</span>
                     <div className="shortcut-recorder">
                       <button
                         type="button"
@@ -326,8 +350,8 @@ function SettingsModal({
                         onBlur={() => setRecordingShortcut(false)}
                       >
                         {recordingShortcut
-                          ? "Press shortcut keys..."
-                          : draft.globalShortcut || "Click to record"}
+                          ? text.general.pressShortcut
+                          : draft.globalShortcut || text.general.clickToRecord}
                       </button>
                       <button
                         type="button"
@@ -336,13 +360,13 @@ function SettingsModal({
                           setDraft((current) => ({ ...current, globalShortcut: "" }))
                         }
                       >
-                        Clear
+                        {text.general.clear}
                       </button>
                     </div>
                   </label>
 
                   <label className="field">
-                    <span>History limit</span>
+                    <span>{text.general.historyLimit}</span>
                     <input
                       type="number"
                       min={1}
@@ -358,7 +382,7 @@ function SettingsModal({
                   </label>
 
                   <label className="field">
-                    <span>Provider timeout</span>
+                    <span>{text.general.providerTimeout}</span>
                     <input
                       type="number"
                       min={10}
@@ -380,13 +404,13 @@ function SettingsModal({
               <section className="settings-section">
                 <div className="section-heading">
                   <div>
-                    <h3>Provider</h3>
-                    <p>Whitelisted CLI settings for Codex and Claude.</p>
+                    <h3>{text.provider.title}</h3>
+                    <p>{text.provider.description}</p>
                   </div>
                 </div>
 
                 <label className="field">
-                  <span>Active provider</span>
+                  <span>{text.provider.activeProvider}</span>
                   <div className="segmented compact">
                     <button
                       type="button"
@@ -408,7 +432,7 @@ function SettingsModal({
                 {draft.provider === "codex" ? (
                   <section className="provider-settings">
                     <label className="field">
-                      <span>Codex executable</span>
+                      <span>{text.provider.codexExecutable}</span>
                       <input
                         value={draft.codexExecutable}
                         onChange={(event) =>
@@ -423,18 +447,18 @@ function SettingsModal({
 
                     <div className="provider-grid">
                       <label className="field">
-                        <span>Model</span>
+                        <span>{text.provider.model}</span>
                         <input
                           value={draft.codexModel}
                           onChange={(event) =>
                             setDraft((current) => ({ ...current, codexModel: event.target.value }))
                           }
-                          placeholder="Default"
+                          placeholder={text.provider.defaultValue}
                         />
                       </label>
 
                       <label className="field">
-                        <span>Reasoning effort</span>
+                        <span>{text.provider.reasoningEffort}</span>
                         <select
                           value={draft.codexReasoningEffort}
                           onChange={(event) =>
@@ -453,20 +477,20 @@ function SettingsModal({
                     </div>
 
                     <label className="field">
-                      <span>Profile</span>
+                      <span>{text.provider.profile}</span>
                       <input
                         value={draft.codexProfile}
                         onChange={(event) =>
                           setDraft((current) => ({ ...current, codexProfile: event.target.value }))
                         }
-                        placeholder="Default"
+                        placeholder={text.provider.defaultValue}
                       />
                     </label>
                   </section>
                 ) : (
                   <section className="provider-settings">
                     <label className="field">
-                      <span>Claude executable</span>
+                      <span>{text.provider.claudeExecutable}</span>
                       <input
                         value={draft.claudeExecutable}
                         onChange={(event) =>
@@ -480,13 +504,13 @@ function SettingsModal({
                     </label>
 
                     <label className="field">
-                      <span>Model</span>
+                      <span>{text.provider.model}</span>
                       <input
                         value={draft.claudeModel}
                         onChange={(event) =>
                           setDraft((current) => ({ ...current, claudeModel: event.target.value }))
                         }
-                        placeholder="Default"
+                        placeholder={text.provider.defaultValue}
                       />
                     </label>
                   </section>
@@ -498,11 +522,13 @@ function SettingsModal({
               <section className="settings-section contexts-settings">
                 <div className="section-heading">
                   <div>
-                    <h3>Contexts</h3>
-                    <p>Main screen actions are generated from these contexts.</p>
+                    <h3>{text.contexts.title}</h3>
+                    <p>{text.contexts.description}</p>
+                    <p className="setting-note">{text.contexts.minimumRequired}</p>
+                    {contextError ? <p className="settings-error">{contextError}</p> : null}
                   </div>
                   <button className="secondary-button" type="button" onClick={addContext}>
-                    Add
+                    {text.contexts.add}
                   </button>
                 </div>
 
@@ -510,36 +536,36 @@ function SettingsModal({
                   {draft.contexts.map((context, index) => (
                     <section className="context-editor" key={context.id}>
                       <div className="context-editor-header">
-                        <span>Context {index + 1}</span>
+                        <span>{formatText(text.contexts.itemTitle, { index: index + 1 })}</span>
                         <button
                           type="button"
                           onClick={() => deleteContext(context.id)}
                           disabled={draft.contexts.length <= 1}
                         >
-                          Delete
+                          {text.contexts.delete}
                         </button>
                       </div>
 
                       <label className="field">
-                        <span>Label</span>
+                        <span>{text.contexts.label}</span>
                         <input
                           value={context.label}
                           onChange={(event) =>
                             updateContext(context.id, { label: event.target.value })
                           }
-                          placeholder="translate"
+                          placeholder={text.contexts.labelPlaceholder}
                         />
                       </label>
 
                       <label className="field">
-                        <span>Prompt</span>
+                        <span>{text.contexts.prompt}</span>
                         <textarea
                           value={context.prompt}
                           onChange={(event) =>
                             updateContext(context.id, { prompt: event.target.value })
                           }
                           rows={5}
-                          placeholder="Describe how this context should transform the user text."
+                          placeholder={text.contexts.promptPlaceholder}
                         />
                       </label>
                     </section>
@@ -552,8 +578,8 @@ function SettingsModal({
               <section className="settings-section proxy-settings">
                 <div className="section-heading">
                   <div>
-                    <h3>Proxy</h3>
-                    <p>Proxy values are injected into provider CLI environment variables.</p>
+                    <h3>{text.proxy.title}</h3>
+                    <p>{text.proxy.description}</p>
                   </div>
                 </div>
 
@@ -565,12 +591,12 @@ function SettingsModal({
                       setDraft((current) => ({ ...current, proxyEnabled: event.target.checked }))
                     }
                   />
-                  <span>Use proxy</span>
+                  <span>{text.proxy.useProxy}</span>
                 </label>
 
                 <div className="proxy-grid">
                   <label className="field">
-                    <span>HTTP proxy</span>
+                    <span>{text.proxy.httpProxy}</span>
                     <input
                       value={draft.httpProxy}
                       disabled={!draft.proxyEnabled}
@@ -582,7 +608,7 @@ function SettingsModal({
                   </label>
 
                   <label className="field">
-                    <span>All proxy</span>
+                    <span>{text.proxy.allProxy}</span>
                     <input
                       value={draft.allProxy}
                       disabled={!draft.proxyEnabled}
@@ -600,10 +626,10 @@ function SettingsModal({
 
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>
-            Cancel
+            {text.settings.cancel}
           </button>
           <button type="submit" className="primary-button" disabled={saving}>
-            {saving ? "Saving..." : "Save"}
+            {saving ? text.settings.saving : text.settings.save}
           </button>
         </div>
       </form>
@@ -614,12 +640,16 @@ function SettingsModal({
 function HistoryList({
   history,
   selectedId,
+  language,
+  text,
   onSelect,
   onClear,
   onOpenSettings
 }: {
   history: HistoryEntry[];
   selectedId?: string;
+  language: Settings["uiLanguage"];
+  text: ReturnType<typeof getUiText>;
   onSelect: (entry: HistoryEntry) => void;
   onClear: () => void;
   onOpenSettings: () => void;
@@ -627,16 +657,16 @@ function HistoryList({
   return (
     <aside className="history-pane">
       <div className="history-header">
-        <h2>History</h2>
+        <h2>{text.history.title}</h2>
         <button type="button" onClick={onClear} disabled={history.length === 0}>
-          Clear
+          {text.history.clear}
         </button>
       </div>
 
       <div className="history-list">
         {history.length === 0 ? (
           <div className="empty-history">
-            <span>No history yet</span>
+            <span>{text.history.empty}</span>
           </div>
         ) : (
           history.map((entry) => (
@@ -647,17 +677,17 @@ function HistoryList({
               onClick={() => onSelect(entry)}
             >
               <span className="history-meta">
-                {historyContextLabel(entry)} · {formatDate(entry.createdAt)}
+                {historyDisplayLabel(entry, text)} · {formatDate(entry.createdAt, language)}
               </span>
-              <strong>{entry.inputPreview || "Untitled text"}</strong>
-              <span>{entry.outputPreview || "No output"}</span>
+              <strong>{entry.inputPreview || text.history.untitled}</strong>
+              <span>{entry.outputPreview || text.history.noOutput}</span>
             </button>
           ))
         )}
       </div>
 
       <button className="settings-button" type="button" onClick={onOpenSettings}>
-        Settings
+        {text.history.settings}
       </button>
     </aside>
   );
@@ -677,6 +707,7 @@ function App() {
   const [copied, setCopied] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
+  const text = getUiText(settings.uiLanguage);
   const selectedText = selectedEntry ? selectedEntry.output : output;
   const activeContext =
     settings.contexts.find((context) => context.id === selectedContextId) ??
@@ -715,11 +746,19 @@ function App() {
     const disposeSettings = api.onOpenSettings(() => {
       setSettingsOpen(true);
     });
+    const disposeServiceInput = api.onServiceInput((request) => {
+      setSelectedEntry(null);
+      setSelectedContextId(request.contextId);
+      setInput(request.input);
+      requestAnimationFrame(() => textAreaRef.current?.focus());
+      void submitRequest(request.contextId, request.input);
+    });
 
     return () => {
       mounted = false;
       dispose();
       disposeSettings();
+      disposeServiceInput();
     };
   }, []);
 
@@ -753,8 +792,7 @@ function App() {
     setSelectedContextId(settings.contexts[0]?.id ?? "translate");
   }, [selectedContextId, settings.contexts]);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function submitRequest(contextId: string, requestInput: string) {
     setError("");
     setCopied(false);
     setElapsedSeconds(0);
@@ -762,7 +800,7 @@ function App() {
     setSelectedEntry(null);
 
     try {
-      const entry = await api.runAction({ contextId: activeContext.id, input });
+      const entry = await api.runAction({ contextId, input: requestInput });
       setOutput(entry.output);
       setHistory((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
     } catch (runError) {
@@ -770,6 +808,11 @@ function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    await submitRequest(activeContext.id, input);
   }
 
   async function handleSaveSettings(nextSettings: Settings) {
@@ -801,11 +844,13 @@ function App() {
 
   const outputTitle = useMemo(() => {
     if (selectedEntry) {
-      return `${historyContextLabel(selectedEntry)} result`;
+      return formatText(text.main.contextResult, {
+        context: historyDisplayLabel(selectedEntry, text)
+      });
     }
 
-    return output ? "Result" : "Output";
-  }, [output, selectedEntry]);
+    return output ? text.main.result : text.main.output;
+  }, [output, selectedEntry, text]);
 
   return (
     <div className="shell">
@@ -819,6 +864,8 @@ function App() {
         <HistoryList
           history={history}
           selectedId={selectedEntry?.id}
+          language={settings.uiLanguage}
+          text={text}
           onSelect={setSelectedEntry}
           onClear={handleClearHistory}
           onOpenSettings={() => setSettingsOpen(true)}
@@ -829,33 +876,33 @@ function App() {
             <section className="detail-view">
               <div className="detail-header">
                 <div>
-                  <span className="eyebrow">{historyContextLabel(selectedEntry)}</span>
-                  <h2>{formatDate(selectedEntry.createdAt)}</h2>
+                  <span className="eyebrow">{historyDisplayLabel(selectedEntry, text)}</span>
+                  <h2>{formatDate(selectedEntry.createdAt, settings.uiLanguage)}</h2>
                 </div>
                 <button className="secondary-button" type="button" onClick={() => setSelectedEntry(null)}>
-                  Close
+                  {text.main.close}
                 </button>
               </div>
 
               <div className="detail-columns">
                 <section>
-                  <h3>Original</h3>
+                  <h3>{text.main.original}</h3>
                   <pre>{selectedEntry.input}</pre>
                 </section>
                 <section>
-                  <h3>Output</h3>
+                  <h3>{text.main.output}</h3>
                   <pre>{selectedEntry.output}</pre>
                 </section>
               </div>
 
               <button className="copy-button detail-copy" type="button" onClick={handleCopy}>
-                {copied ? "Copied" : "Copy"}
+                {copied ? text.main.copied : text.main.copy}
               </button>
             </section>
           ) : (
             <>
               <form className="composer" onSubmit={handleSubmit}>
-                <div className="segmented mode-switch" role="group" aria-label="Choose context">
+                <div className="segmented mode-switch" role="group" aria-label={text.main.chooseContext}>
                   {settings.contexts.map((context) => (
                     <button
                       type="button"
@@ -863,7 +910,7 @@ function App() {
                       className={context.id === activeContext.id ? "active" : ""}
                       onClick={() => setSelectedContextId(context.id)}
                     >
-                      {context.label}
+                      {contextDisplayLabel(context, text)}
                     </button>
                   ))}
                 </div>
@@ -873,11 +920,13 @@ function App() {
                     ref={textAreaRef}
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
-                    placeholder={`Paste text for ${activeContext.label}...`}
+                    placeholder={formatText(text.main.pasteFor, {
+                      context: contextDisplayLabel(activeContext, text)
+                    })}
                     autoFocus
                   />
                   <button className="submit-button" type="submit" disabled={!canSubmit}>
-                    {loading ? "Working..." : "Submit"}
+                    {loading ? text.main.working : text.main.submit}
                   </button>
                 </div>
               </form>
@@ -894,7 +943,7 @@ function App() {
                     onClick={handleCopy}
                     disabled={!selectedText.trim()}
                   >
-                    {copied ? "Copied" : "Copy"}
+                    {copied ? text.main.copied : text.main.copy}
                   </button>
                 </div>
 
@@ -903,9 +952,10 @@ function App() {
                     ? loadingMessage(
                         settings.provider,
                         elapsedSeconds,
-                        settings.providerTimeoutSeconds
+                        settings.providerTimeoutSeconds,
+                        text
                       )
-                    : output || "Your result will appear here."}
+                    : output || text.main.emptyResult}
                 </div>
               </section>
             </>

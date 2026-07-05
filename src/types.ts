@@ -1,4 +1,5 @@
 export type Provider = "codex" | "claude";
+export type UiLanguage = "en" | "zh";
 
 export interface PromptContext {
   id: string;
@@ -7,6 +8,7 @@ export interface PromptContext {
 }
 
 export interface Settings {
+  uiLanguage: UiLanguage;
   provider: Provider;
   codexExecutable: string;
   codexModel: string;
@@ -41,6 +43,10 @@ export interface RunRequest {
   input: string;
 }
 
+export interface ServiceInputRequest extends RunRequest {
+  source: "macos-service";
+}
+
 export interface OolongApi {
   getSettings: () => Promise<Settings>;
   saveSettings: (settings: Settings) => Promise<Settings>;
@@ -51,6 +57,7 @@ export interface OolongApi {
   copyText: (text: string) => Promise<boolean>;
   onFocusInput: (callback: () => void) => () => void;
   onOpenSettings: (callback: () => void) => () => void;
+  onServiceInput: (callback: (request: ServiceInputRequest) => void) => () => void;
 }
 
 declare global {

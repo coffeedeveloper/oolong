@@ -1,9 +1,14 @@
 const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu } = require("electron");
 const path = require("node:path");
+const { constants: fsConstants } = require("node:fs");
 const fs = require("node:fs/promises");
 const { spawn } = require("node:child_process");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
+const serviceWorkflowName = "oolong.translate content";
+const serviceWorkflowFileName = `${serviceWorkflowName}.workflow`;
+const serviceContextId = "translate";
+const pendingServiceUrls = [];
 
 const defaultContexts = [
   {
@@ -30,6 +35,7 @@ const defaultContexts = [
 ];
 
 const defaultSettings = {
+  uiLanguage: "en",
   provider: "codex",
   codexExecutable: "codex",
   codexModel: "",
@@ -48,7 +54,50 @@ const defaultSettings = {
 
 let mainWindow = null;
 let storePath = "";
+let userBinPathsCache = null;
 const allowedCodexReasoningEfforts = new Set(["low", "medium", "high", "xhigh"]);
+
+const uiMessages = {
+  en: {
+    preferences: "Preferences...",
+    settings: "Settings...",
+    file: "File",
+    edit: "Edit",
+    emptyInput: "Please enter text first.",
+    missingContext: "Please configure at least one context in Settings.",
+    timeout:
+      "{command} timed out after {seconds} seconds. Check proxy/network settings or increase Provider timeout in Settings.",
+    executableNotFound:
+      "Could not find {command}. Set an absolute executable path in Settings > Provider, or install it in a standard user bin path."
+  },
+  zh: {
+    preferences: "偏好设置...",
+    settings: "设置...",
+    file: "文件",
+    edit: "编辑",
+    emptyInput: "请先输入文本。",
+    missingContext: "请先在设置中至少配置一个场景。",
+    timeout: "{command} 在 {seconds} 秒后超时。请检查代理/网络设置，或在设置中调大服务超时时间。",
+    executableNotFound:
+      "找不到 {command}。请在设置 > 模型服务中配置绝对可执行文件路径，或将它安装到标准用户 bin 路径。"
+  }
+};
+
+function normalizeUiLanguage(value) {
+  return value === "zh" ? "zh" : "en";
+}
+
+function messageText(settings) {
+  return uiMessages[normalizeUiLanguage(settings?.uiLanguage)];
+}
+
+function formatMessage(value, params) {
+  return Object.entries(params).reduce(
+    (result, [key, replacement]) =>
+      result.split(`{${key}}`).join(String(replacement)),
+    value
+  );
+}
 
 function appendLegacySystemPrompt(prompt, systemPrompt) {
   const legacyPrompt = typeof systemPrompt === "string" ? systemPrompt.trim() : "";
@@ -124,6 +173,7 @@ function normalizeSettings(value = {}) {
   return {
     ...defaultSettings,
     ...value,
+    uiLanguage: normalizeUiLanguage(value.uiLanguage),
     provider,
     codexExecutable:
       typeof value.codexExecutable === "string" && value.codexExecutable.trim()
@@ -184,6 +234,281 @@ async function readStore() {
 async function writeStore(store) {
   await ensureStorePath();
   await fs.writeFile(storePath, `${JSON.stringify(normalizeStore(store), null, 2)}\n`, "utf8");
+}
+
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+async function writeFileIfChanged(filePath, content) {
+  try {
+    const current = await fs.readFile(filePath, "utf8");
+    if (current === content) {
+      return false;
+    }
+  } catch (error) {
+    if (!error || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  await fs.writeFile(filePath, content, "utf8");
+  return true;
+}
+
+function serviceShellScript() {
+  return [
+    "set -e",
+    "selected_text=\"$(cat)\"",
+    "if [ -z \"$selected_text\" ]; then",
+    "  exit 0",
+    "fi",
+    "tmp_file=\"${TMPDIR:-/tmp}/oolong-service-$(uuidgen).txt\"",
+    "printf \"%s\" \"$selected_text\" > \"$tmp_file\"",
+    "/usr/bin/open \"oolong://translate?source=service&file=$tmp_file\""
+  ].join("\n");
+}
+
+function serviceInfoPlist() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en_US</string>
+  <key>CFBundleIdentifier</key>
+  <string>dev.oolong.app.service.translate</string>
+  <key>CFBundleName</key>
+  <string>${xmlEscape(serviceWorkflowName)}</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>NSServices</key>
+  <array>
+    <dict>
+      <key>NSMenuItem</key>
+      <dict>
+        <key>default</key>
+        <string>${xmlEscape(serviceWorkflowName)}</string>
+      </dict>
+      <key>NSMessage</key>
+      <string>runWorkflowAsService</string>
+      <key>NSSendTypes</key>
+      <array>
+        <string>public.utf8-plain-text</string>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>
+`;
+}
+
+function serviceVersionPlist() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>BuildVersion</key>
+  <string>1</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+</dict>
+</plist>
+`;
+}
+
+function serviceDocumentWorkflow() {
+  const command = xmlEscape(serviceShellScript());
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>AMApplicationBuild</key>
+  <string>346</string>
+  <key>AMApplicationVersion</key>
+  <string>2.3</string>
+  <key>AMDocumentVersion</key>
+  <string>2</string>
+  <key>actions</key>
+  <array>
+    <dict>
+      <key>action</key>
+      <dict>
+        <key>ActionBundlePath</key>
+        <string>/System/Library/Automator/Run Shell Script.action</string>
+        <key>ActionName</key>
+        <string>Run Shell Script</string>
+        <key>ActionParameters</key>
+        <dict>
+          <key>CheckedForUserDefaultShell</key>
+          <true/>
+          <key>COMMAND_STRING</key>
+          <string>${command}</string>
+          <key>inputMethod</key>
+          <integer>0</integer>
+          <key>shell</key>
+          <string>/bin/bash</string>
+          <key>source</key>
+          <string></string>
+        </dict>
+        <key>AMAccepts</key>
+        <dict>
+          <key>Container</key>
+          <string>List</string>
+          <key>Optional</key>
+          <true/>
+          <key>Types</key>
+          <array>
+            <string>com.apple.cocoa.string</string>
+          </array>
+        </dict>
+        <key>AMActionVersion</key>
+        <string>2.0.3</string>
+        <key>AMApplication</key>
+        <array>
+          <string>Automator</string>
+        </array>
+        <key>AMParameterProperties</key>
+        <dict>
+          <key>CheckedForUserDefaultShell</key>
+          <dict/>
+          <key>COMMAND_STRING</key>
+          <dict/>
+          <key>inputMethod</key>
+          <dict/>
+          <key>shell</key>
+          <dict/>
+          <key>source</key>
+          <dict/>
+        </dict>
+        <key>AMProvides</key>
+        <dict>
+          <key>Container</key>
+          <string>List</string>
+          <key>Types</key>
+          <array>
+            <string>com.apple.cocoa.string</string>
+          </array>
+        </dict>
+        <key>BundleIdentifier</key>
+        <string>com.apple.RunShellScript</string>
+        <key>CanShowSelectedItemsWhenRun</key>
+        <false/>
+        <key>CanShowWhenRun</key>
+        <true/>
+        <key>Category</key>
+        <array>
+          <string>AMCategoryUtilities</string>
+        </array>
+        <key>CFBundleVersion</key>
+        <string>2.0.3</string>
+        <key>Class Name</key>
+        <string>RunShellScriptAction</string>
+        <key>InputUUID</key>
+        <string>4B4241FE-FC63-4F43-B503-A4EA5174F600</string>
+        <key>Keywords</key>
+        <array>
+          <string>Shell</string>
+          <string>Script</string>
+          <string>Command</string>
+          <string>Run</string>
+          <string>Unix</string>
+        </array>
+        <key>OutputUUID</key>
+        <string>51DC59D0-8885-4755-A61A-D060FD68325E</string>
+        <key>UUID</key>
+        <string>5AF8432C-BD56-44CD-9CE8-BD2E4F29C3D1</string>
+        <key>UnlocalizedApplications</key>
+        <array>
+          <string>Automator</string>
+        </array>
+        <key>isViewVisible</key>
+        <true/>
+        <key>location</key>
+        <string>309.500000:631.000000</string>
+        <key>nibPath</key>
+        <string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/en.lproj/main.nib</string>
+      </dict>
+      <key>isViewVisible</key>
+      <true/>
+    </dict>
+  </array>
+  <key>connectors</key>
+  <dict/>
+  <key>workflowMetaData</key>
+  <dict>
+    <key>serviceApplicationBundleID</key>
+    <string></string>
+    <key>serviceApplicationPath</key>
+    <string></string>
+    <key>serviceInputTypeIdentifier</key>
+    <string>com.apple.Automator.text</string>
+    <key>serviceOutputTypeIdentifier</key>
+    <string>com.apple.Automator.nothing</string>
+    <key>serviceProcessesInput</key>
+    <integer>1</integer>
+    <key>workflowTypeIdentifier</key>
+    <string>com.apple.Automator.servicesMenu</string>
+  </dict>
+</dict>
+</plist>
+`;
+}
+
+function registerProtocolClient() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  if (isDev) {
+    app.setAsDefaultProtocolClient("oolong", process.execPath, [path.resolve(__dirname, "..")]);
+    return;
+  }
+
+  app.setAsDefaultProtocolClient("oolong");
+}
+
+async function flushServicesMenu() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  await new Promise((resolve) => {
+    const child = spawn("/System/Library/CoreServices/pbs", ["-flush"], {
+      stdio: "ignore",
+      windowsHide: true
+    });
+    child.on("error", resolve);
+    child.on("close", resolve);
+  });
+}
+
+async function installMacTextService() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const servicesDir = path.join(app.getPath("home"), "Library", "Services");
+  const workflowDir = path.join(servicesDir, serviceWorkflowFileName);
+  const contentsDir = path.join(workflowDir, "Contents");
+  const resourcesDir = path.join(contentsDir, "Resources");
+  await fs.mkdir(resourcesDir, { recursive: true });
+
+  const didChange = [
+    await writeFileIfChanged(path.join(contentsDir, "Info.plist"), serviceInfoPlist()),
+    await writeFileIfChanged(path.join(contentsDir, "version.plist"), serviceVersionPlist()),
+    await writeFileIfChanged(path.join(resourcesDir, "document.wflow"), serviceDocumentWorkflow())
+  ].some(Boolean);
+
+  if (didChange) {
+    await flushServicesMenu();
+  }
 }
 
 function createWindow() {
@@ -259,10 +584,11 @@ function openSettingsWindow() {
   mainWindow.webContents.send("open-settings");
 }
 
-function configureApplicationMenu() {
+function configureApplicationMenu(settings = defaultSettings) {
   const isMac = process.platform === "darwin";
+  const text = messageText(settings);
   const settingsItem = {
-    label: isMac ? "Preferences..." : "Settings...",
+    label: isMac ? text.preferences : text.settings,
     accelerator: "CommandOrControl+,",
     click: openSettingsWindow
   };
@@ -288,12 +614,12 @@ function configureApplicationMenu() {
         ]
       : [
           {
-            label: "File",
+            label: text.file,
             submenu: [settingsItem, { type: "separator" }, { role: "quit" }]
           }
         ]),
     {
-      label: "Edit",
+      label: text.edit,
       submenu: [
         { role: "undo" },
         { role: "redo" },
@@ -348,7 +674,7 @@ function providerCommand(settings, prompt) {
     };
   }
 
-  const args = ["exec"];
+  const args = ["exec", "--skip-git-repo-check"];
   if (settings.codexReasoningEffort) {
     args.push("-c", `model_reasoning_effort="${settings.codexReasoningEffort}"`);
   }
@@ -390,10 +716,64 @@ function applyProxyEnv(env, settings) {
   return env;
 }
 
-function buildEnv(settings) {
+function expandHomePath(value, home) {
+  if (value === "~") {
+    return home;
+  }
+  if (value.startsWith("~/")) {
+    return path.join(home, value.slice(2));
+  }
+  return value;
+}
+
+async function listChildBinPaths(root, segments) {
+  try {
+    const entries = await fs.readdir(root, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
+      .map((entry) => path.join(root, entry.name, ...segments));
+  } catch {
+    return [];
+  }
+}
+
+async function discoverUserBinPaths(home) {
+  if (userBinPathsCache) {
+    return userBinPathsCache;
+  }
+
+  const fnmRoot = path.join(home, ".local", "share", "fnm");
+  const fnmAliasBins = await listChildBinPaths(path.join(fnmRoot, "aliases"), ["bin"]);
+  const fnmVersionBins = await listChildBinPaths(path.join(fnmRoot, "node-versions"), [
+    "installation",
+    "bin"
+  ]);
+  const nvmVersionBins = await listChildBinPaths(path.join(home, ".nvm", "versions", "node"), [
+    "bin"
+  ]);
+
+  userBinPathsCache = [
+    ...fnmAliasBins,
+    ...fnmVersionBins.sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
+    ...nvmVersionBins.sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
+    path.join(home, ".volta", "bin"),
+    path.join(home, ".asdf", "shims"),
+    path.join(home, ".nodenv", "shims"),
+    path.join(home, ".bun", "bin"),
+    path.join(home, "Library", "pnpm"),
+    path.join(home, ".npm-global", "bin"),
+    path.join(home, ".yarn", "bin")
+  ];
+
+  return userBinPathsCache;
+}
+
+async function buildEnv(settings) {
   const home = app.getPath("home");
+  const userBinPaths = await discoverUserBinPaths(home);
   const pathParts = [
     process.env.PATH,
+    ...userBinPaths,
     "/opt/homebrew/bin",
     "/usr/local/bin",
     "/usr/bin",
@@ -412,13 +792,98 @@ function buildEnv(settings) {
   return applyProxyEnv(env, settings);
 }
 
-function runCli(settings, prompt) {
+async function canExecute(filePath) {
+  try {
+    await fs.access(filePath, fsConstants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
+async function resolveFromLoginShell(command, env) {
+  return new Promise((resolve) => {
+    const child = spawn("/bin/zsh", ["-lic", `command -v -- ${shellQuote(command)}`], {
+      env,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    let stdout = "";
+    const timeout = setTimeout(() => {
+      child.kill("SIGTERM");
+      resolve("");
+    }, 4000);
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+    child.on("error", () => {
+      clearTimeout(timeout);
+      resolve("");
+    });
+    child.on("close", async () => {
+      clearTimeout(timeout);
+      const matches = stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      for (const match of matches.reverse()) {
+        if (await canExecute(match)) {
+          resolve(match);
+          return;
+        }
+      }
+
+      resolve("");
+    });
+  });
+}
+
+async function findExecutable(command, env, settings) {
+  const home = app.getPath("home");
+  const expandedCommand = expandHomePath(command, home);
+  const hasPathSeparator = expandedCommand.includes(path.sep);
+  const text = messageText(settings);
+
+  if (hasPathSeparator) {
+    if (await canExecute(expandedCommand)) {
+      return expandedCommand;
+    }
+    throw new Error(formatMessage(text.executableNotFound, { command }));
+  }
+
+  const pathEntries = String(env.PATH || "")
+    .split(path.delimiter)
+    .filter(Boolean);
+  for (const entry of pathEntries) {
+    const candidate = path.join(entry, expandedCommand);
+    if (await canExecute(candidate)) {
+      return candidate;
+    }
+  }
+
+  const shellResolved = await resolveFromLoginShell(expandedCommand, env);
+  if (shellResolved) {
+    return shellResolved;
+  }
+
+  throw new Error(formatMessage(text.executableNotFound, { command }));
+}
+
+async function runCli(settings, prompt) {
   const { command, args, stdin } = providerCommand(settings, prompt);
   const timeoutMs = settings.providerTimeoutSeconds * 1000;
+  const env = await buildEnv(settings);
+  const executable = await findExecutable(command, env, settings);
 
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      env: buildEnv(settings),
+    const child = spawn(executable, args, {
+      env,
       windowsHide: true,
       stdio: [stdin ? "pipe" : "ignore", "pipe", "pipe"]
     });
@@ -429,9 +894,13 @@ function runCli(settings, prompt) {
     const timeout = setTimeout(() => {
       timedOut = true;
       child.kill("SIGTERM");
+      const text = messageText(settings);
       reject(
         new Error(
-          `${command} timed out after ${settings.providerTimeoutSeconds} seconds. Check proxy/network settings or increase Provider timeout in Settings.`
+          formatMessage(text.timeout, {
+            command,
+            seconds: settings.providerTimeoutSeconds
+          })
         )
       );
     }, timeoutMs);
@@ -475,6 +944,74 @@ function historyPreview(text) {
   return text.replace(/\s+/g, " ").trim().slice(0, 140);
 }
 
+function sendServiceInput(request) {
+  focusMainWindow();
+
+  const deliver = () => {
+    mainWindow?.webContents.send("service-input", request);
+  };
+
+  if (mainWindow?.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", deliver);
+    return;
+  }
+
+  deliver();
+}
+
+async function handleServiceUrl(rawUrl) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch (error) {
+    console.warn("Ignoring invalid service URL:", rawUrl, error);
+    return;
+  }
+
+  if (parsedUrl.protocol !== "oolong:") {
+    return;
+  }
+
+  const action = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, "");
+  if (action !== "translate") {
+    return;
+  }
+
+  const filePath = parsedUrl.searchParams.get("file");
+  const text = parsedUrl.searchParams.get("text");
+  let input = typeof text === "string" ? text : "";
+
+  if (filePath) {
+    try {
+      input = await fs.readFile(filePath, "utf8");
+      await fs.unlink(filePath).catch(() => undefined);
+    } catch (error) {
+      console.warn("Failed to read service input file:", filePath, error);
+      return;
+    }
+  }
+
+  if (!input.trim()) {
+    return;
+  }
+
+  sendServiceInput({
+    source: "macos-service",
+    contextId: serviceContextId,
+    input
+  });
+}
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  if (app.isReady()) {
+    void handleServiceUrl(url);
+    return;
+  }
+
+  pendingServiceUrls.push(url);
+});
+
 ipcMain.handle("settings:get", async () => {
   const store = await readStore();
   return store.settings;
@@ -484,6 +1021,7 @@ ipcMain.handle("settings:save", async (_, settings) => {
   const store = await readStore();
   store.settings = normalizeSettings(settings);
   await writeStore(store);
+  configureApplicationMenu(store.settings);
   await registerShortcut(store.settings);
   return store.settings;
 });
@@ -515,16 +1053,17 @@ ipcMain.handle("clipboard:copy", async (_, text) => {
 ipcMain.handle("action:run", async (_, request) => {
   const input = String(request?.input ?? "").trim();
   const requestedContextId = String(request?.contextId ?? request?.mode ?? "").trim();
-
-  if (!input) {
-    throw new Error("Please enter text first.");
-  }
-
   const store = await readStore();
   const settings = normalizeSettings(store.settings);
+  const text = messageText(settings);
+
+  if (!input) {
+    throw new Error(text.emptyInput);
+  }
+
   const context = findContext(settings, requestedContextId);
   if (!context) {
-    throw new Error("Please configure at least one context in Settings.");
+    throw new Error(text.missingContext);
   }
 
   const prompt = makePrompt({ context, input });
@@ -549,9 +1088,14 @@ ipcMain.handle("action:run", async (_, request) => {
 
 app.whenReady().then(async () => {
   const store = await readStore();
-  configureApplicationMenu();
+  registerProtocolClient();
+  await installMacTextService();
+  configureApplicationMenu(store.settings);
   createWindow();
   await registerShortcut(store.settings);
+  for (const url of pendingServiceUrls.splice(0)) {
+    void handleServiceUrl(url);
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

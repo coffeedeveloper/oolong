@@ -436,6 +436,17 @@ button {
   font-size: 13px;
 }
 
+.section-heading .setting-note {
+  color: #8a8177;
+  font-size: 12px;
+}
+
+.section-heading .settings-error {
+  color: #b33f2f;
+  font-size: 12px;
+  font-weight: 720;
+}
+
 .context-list {
   display: grid;
   gap: 8px;
@@ -518,8 +529,9 @@ button {
 
 .shortcut-recorder {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto;
   gap: 8px;
+  max-width: 560px;
 }
 
 .shortcut-capture,
@@ -535,6 +547,7 @@ button {
 
 .shortcut-capture {
   overflow: hidden;
+  min-width: 0;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -593,8 +606,13 @@ button {
 
 .settings-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 130px 150px;
-  gap: 10px;
+  grid-template-columns: minmax(240px, 1fr) minmax(150px, 220px);
+  gap: 12px 14px;
+  align-items: end;
+}
+
+.settings-grid .shortcut-field {
+  grid-column: 1 / -1;
 }
 
 .modal-actions {
@@ -718,5 +736,10 @@ button {
   .proxy-grid,
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .shortcut-recorder {
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: none;
   }
 }
