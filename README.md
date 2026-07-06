@@ -17,7 +17,7 @@ It is built for short daily writing workflows: paste text, choose a context, sub
 - **Bilingual interface**: switch the app UI, status messages, and default action labels between English and Chinese.
 - **CLI-powered output**: run `codex exec` or `claude -p` locally instead of depending on a hosted app backend.
 - **Local history**: keep recent input/output pairs locally with a configurable limit.
-- **Global shortcut**: bring oolong forward and focus the text area from anywhere on macOS.
+- **Global shortcuts**: bring oolong forward, or query the current clipboard contents from anywhere on macOS.
 - **macOS Service**: install `oolong.translate content` for translating selected text from the Services menu.
 - **Proxy and timeout controls**: inject proxy environment variables and avoid silent long-running provider calls.
 - **Release automation**: tag-based GitHub Actions workflow builds macOS `.dmg` and `.zip` packages.
@@ -30,7 +30,8 @@ Settings are organized into focused tabs for day-to-day configuration and provid
 
 | Tab | What it controls |
 | --- | --- |
-| General | App language, global shortcut, history limit, provider timeout |
+| General | App language, history limit, provider timeout |
+| Shortcuts | Open oolong and query clipboard text shortcuts |
 | Provider | Codex/Claude executable path, model, Codex reasoning effort, Codex profile |
 | Contexts | User-facing action labels and prompts |
 | Proxy | `http_proxy`, `https_proxy`, `all_proxy`, and uppercase variants for provider processes |

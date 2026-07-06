@@ -17,6 +17,7 @@ export interface Settings {
   claudeExecutable: string;
   claudeModel: string;
   globalShortcut: string;
+  clipboardShortcut: string;
   historyLimit: number;
   providerTimeoutSeconds: number;
   proxyEnabled: boolean;
@@ -47,6 +48,11 @@ export interface ServiceInputRequest extends RunRequest {
   source: "macos-service";
 }
 
+export interface ClipboardQueryRequest {
+  source: "global-shortcut";
+  input: string;
+}
+
 export interface OolongApi {
   getSettings: () => Promise<Settings>;
   saveSettings: (settings: Settings) => Promise<Settings>;
@@ -58,6 +64,7 @@ export interface OolongApi {
   onFocusInput: (callback: () => void) => () => void;
   onOpenSettings: (callback: () => void) => () => void;
   onServiceInput: (callback: (request: ServiceInputRequest) => void) => () => void;
+  onClipboardQuery: (callback: (request: ClipboardQueryRequest) => void) => () => void;
 }
 
 declare global {

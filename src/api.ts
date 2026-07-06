@@ -37,6 +37,7 @@ const fallbackSettings: Settings = {
   claudeExecutable: "claude",
   claudeModel: "",
   globalShortcut: "CommandOrControl+Shift+O",
+  clipboardShortcut: "CommandOrControl+Alt+O",
   historyLimit: 100,
   providerTimeoutSeconds: 120,
   proxyEnabled: false,
@@ -113,6 +114,14 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
         ? value.claudeExecutable.trim()
         : fallbackSettings.claudeExecutable,
     claudeModel: typeof value.claudeModel === "string" ? value.claudeModel.trim() : "",
+    globalShortcut:
+      typeof value.globalShortcut === "string" && value.globalShortcut.trim()
+        ? value.globalShortcut.trim()
+        : fallbackSettings.globalShortcut,
+    clipboardShortcut:
+      typeof value.clipboardShortcut === "string" && value.clipboardShortcut.trim()
+        ? value.clipboardShortcut.trim()
+        : fallbackSettings.clipboardShortcut,
     historyLimit: Math.min(500, Math.max(1, Number(value.historyLimit) || 100)),
     providerTimeoutSeconds: Math.min(
       600,
@@ -235,6 +244,9 @@ const previewApi: OolongApi = {
     return () => undefined;
   },
   onServiceInput() {
+    return () => undefined;
+  },
+  onClipboardQuery() {
     return () => undefined;
   }
 };

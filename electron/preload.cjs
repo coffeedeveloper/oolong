@@ -22,5 +22,10 @@ contextBridge.exposeInMainWorld("oolong", {
     const listener = (_, request) => callback(request);
     ipcRenderer.on("service-input", listener);
     return () => ipcRenderer.removeListener("service-input", listener);
+  },
+  onClipboardQuery: (callback) => {
+    const listener = (_, request) => callback(request);
+    ipcRenderer.on("clipboard-query", listener);
+    return () => ipcRenderer.removeListener("clipboard-query", listener);
   }
 });

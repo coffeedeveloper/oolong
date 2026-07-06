@@ -439,10 +439,15 @@ button {
 }
 
 .output-body {
+  width: 100%;
   min-height: 140px;
+  border: 1px solid #d8d0c5;
+  border-radius: 8px;
+  background: #fffefa;
   color: #17191d;
   font-size: 17px;
   line-height: 1.5;
+  padding: 14px;
 }
 
 .output-body.muted {
@@ -452,11 +457,7 @@ button {
 .output-loading {
   display: grid;
   gap: 14px;
-  max-width: 760px;
-  border: 1px solid #ded8cf;
-  border-radius: 8px;
-  background: #fffefa;
-  padding: 14px;
+  width: 100%;
   color: #4f4942;
 }
 

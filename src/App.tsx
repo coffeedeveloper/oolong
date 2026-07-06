@@ -63,6 +63,7 @@ const fallbackSettings: Settings = {
   claudeExecutable: "claude",
   claudeModel: "",
   globalShortcut: "CommandOrControl+Shift+O",
+  clipboardShortcut: "CommandOrControl+Alt+O",
   historyLimit: 100,
   providerTimeoutSeconds: 120,
   proxyEnabled: false,
@@ -338,7 +339,8 @@ function ModelPicker({
   );
 }
 
-type SettingsTab = "general" | "provider" | "contexts" | "proxy";
+type SettingsTab = "general" | "shortcuts" | "provider" | "contexts" | "proxy";
+type ShortcutSetting = "globalShortcut" | "clipboardShortcut";
 
 function SettingsModal({
   settings,
@@ -351,23 +353,34 @@ function SettingsModal({
 }) {
   const [draft, setDraft] = useState<Settings>(settings);
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
-  const [recordingShortcut, setRecordingShortcut] = useState(false);
+  const [recordingShortcut, setRecordingShortcut] = useState<ShortcutSetting | null>(null);
   const [saving, setSaving] = useState(false);
   const [contextError, setContextError] = useState("");
-  const shortcutButtonRef = useRef<HTMLButtonElement>(null);
+  const globalShortcutButtonRef = useRef<HTMLButtonElement>(null);
+  const clipboardShortcutButtonRef = useRef<HTMLButtonElement>(null);
   const text = getUiText(draft.uiLanguage);
   const settingsTabs: Array<{ id: SettingsTab; label: string }> = [
     { id: "general", label: text.tabs.general },
+    { id: "shortcuts", label: text.tabs.shortcuts },
     { id: "provider", label: text.tabs.provider },
     { id: "contexts", label: text.tabs.contexts },
     { id: "proxy", label: text.tabs.proxy }
   ];
 
   useEffect(() => {
-    if (recordingShortcut) {
-      shortcutButtonRef.current?.focus();
+    if (recordingShortcut === "globalShortcut") {
+      globalShortcutButtonRef.current?.focus();
+      return;
+    }
+
+    if (recordingShortcut === "clipboardShortcut") {
+      clipboardShortcutButtonRef.current?.focus();
     }
   }, [recordingShortcut]);
+
+  function updateShortcut(key: ShortcutSetting, shortcut: string) {
+    setDraft((current) => ({ ...current, [key]: shortcut }));
+  }
 
   function updateContext(id: string, patch: Partial<PromptContext>) {
     setContextError("");
@@ -412,8 +425,8 @@ function SettingsModal({
     }));
   }
 
-  function handleShortcutKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (!recordingShortcut) {
+  function handleShortcutKeyDown(event: KeyboardEvent<HTMLButtonElement>, key: ShortcutSetting) {
+    if (recordingShortcut !== key) {
       return;
     }
 
@@ -421,13 +434,13 @@ function SettingsModal({
     event.stopPropagation();
 
     if (event.key === "Escape") {
-      setRecordingShortcut(false);
+      setRecordingShortcut(null);
       return;
     }
 
     if (event.key === "Backspace" || event.key === "Delete") {
-      setDraft((current) => ({ ...current, globalShortcut: "" }));
-      setRecordingShortcut(false);
+      updateShortcut(key, "");
+      setRecordingShortcut(null);
       return;
     }
 
@@ -436,8 +449,8 @@ function SettingsModal({
       return;
     }
 
-    setDraft((current) => ({ ...current, globalShortcut: shortcut }));
-    setRecordingShortcut(false);
+    updateShortcut(key, shortcut);
+    setRecordingShortcut(null);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -514,33 +527,6 @@ function SettingsModal({
                     </select>
                   </label>
 
-                  <label className="field shortcut-field">
-                    <span>{text.general.globalShortcut}</span>
-                    <div className="shortcut-recorder">
-                      <button
-                        type="button"
-                        ref={shortcutButtonRef}
-                        className={`shortcut-capture ${recordingShortcut ? "recording" : ""}`}
-                        onClick={() => setRecordingShortcut(true)}
-                        onKeyDown={handleShortcutKeyDown}
-                        onBlur={() => setRecordingShortcut(false)}
-                      >
-                        {recordingShortcut
-                          ? text.general.pressShortcut
-                          : draft.globalShortcut || text.general.clickToRecord}
-                      </button>
-                      <button
-                        type="button"
-                        className="shortcut-clear"
-                        onClick={() =>
-                          setDraft((current) => ({ ...current, globalShortcut: "" }))
-                        }
-                      >
-                        {text.general.clear}
-                      </button>
-                    </div>
-                  </label>
-
                   <label className="field">
                     <span>{text.general.historyLimit}</span>
                     <input
@@ -571,6 +557,73 @@ function SettingsModal({
                         }))
                       }
                     />
+                  </label>
+                </div>
+              </section>
+            ) : null}
+
+            {activeTab === "shortcuts" ? (
+              <section className="settings-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>{text.shortcuts.title}</h3>
+                    <p>{text.shortcuts.description}</p>
+                  </div>
+                </div>
+
+                <div className="settings-grid">
+                  <label className="field shortcut-field">
+                    <span>{text.shortcuts.globalShortcut}</span>
+                    <div className="shortcut-recorder">
+                      <button
+                        type="button"
+                        ref={globalShortcutButtonRef}
+                        className={`shortcut-capture ${
+                          recordingShortcut === "globalShortcut" ? "recording" : ""
+                        }`}
+                        onClick={() => setRecordingShortcut("globalShortcut")}
+                        onKeyDown={(event) => handleShortcutKeyDown(event, "globalShortcut")}
+                        onBlur={() => setRecordingShortcut(null)}
+                      >
+                        {recordingShortcut === "globalShortcut"
+                          ? text.shortcuts.pressShortcut
+                          : draft.globalShortcut || text.shortcuts.clickToRecord}
+                      </button>
+                      <button
+                        type="button"
+                        className="shortcut-clear"
+                        onClick={() => updateShortcut("globalShortcut", "")}
+                      >
+                        {text.shortcuts.clear}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label className="field shortcut-field">
+                    <span>{text.shortcuts.clipboardShortcut}</span>
+                    <div className="shortcut-recorder">
+                      <button
+                        type="button"
+                        ref={clipboardShortcutButtonRef}
+                        className={`shortcut-capture ${
+                          recordingShortcut === "clipboardShortcut" ? "recording" : ""
+                        }`}
+                        onClick={() => setRecordingShortcut("clipboardShortcut")}
+                        onKeyDown={(event) => handleShortcutKeyDown(event, "clipboardShortcut")}
+                        onBlur={() => setRecordingShortcut(null)}
+                      >
+                        {recordingShortcut === "clipboardShortcut"
+                          ? text.shortcuts.pressShortcut
+                          : draft.clipboardShortcut || text.shortcuts.clickToRecord}
+                      </button>
+                      <button
+                        type="button"
+                        className="shortcut-clear"
+                        onClick={() => updateShortcut("clipboardShortcut", "")}
+                      >
+                        {text.shortcuts.clear}
+                      </button>
+                    </div>
                   </label>
                 </div>
               </section>
@@ -890,6 +943,7 @@ function App() {
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const resizeStartRef = useRef({ x: 0, width: defaultHistoryWidth });
+  const activeContextIdRef = useRef("translate");
 
   const text = getUiText(settings.uiLanguage);
   const selectedText = selectedEntry ? selectedEntry.output : output;
@@ -900,6 +954,12 @@ function App() {
   const canSubmit = input.trim().length > 0 && !loading && Boolean(activeContext);
   const canClear = Boolean(input || output || error || selectedEntry) && !loading;
   const providerStatus = providerStatusText(settings);
+  const sidebarToggleLabel = historyCollapsed ? text.history.showSidebar : text.history.hideSidebar;
+  const sidebarToggleTitle = `${sidebarToggleLabel} (${text.history.toggleSidebarShortcut})`;
+
+  useEffect(() => {
+    activeContextIdRef.current = activeContext.id;
+  }, [activeContext.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -934,10 +994,19 @@ function App() {
     });
     const disposeServiceInput = api.onServiceInput((request) => {
       setSelectedEntry(null);
+      setSettingsOpen(false);
       setSelectedContextId(request.contextId);
       setInput(request.input);
       requestAnimationFrame(() => textAreaRef.current?.focus());
       void submitRequest(request.contextId, request.input);
+    });
+    const disposeClipboardQuery = api.onClipboardQuery((request) => {
+      const contextId = activeContextIdRef.current;
+      setSelectedEntry(null);
+      setSettingsOpen(false);
+      setInput(request.input);
+      requestAnimationFrame(() => textAreaRef.current?.focus());
+      void submitRequest(contextId, request.input);
     });
 
     return () => {
@@ -945,6 +1014,7 @@ function App() {
       dispose();
       disposeSettings();
       disposeServiceInput();
+      disposeClipboardQuery();
     };
   }, []);
 
@@ -1021,6 +1091,27 @@ function App() {
     window.addEventListener("keydown", handleContextShortcut);
     return () => window.removeEventListener("keydown", handleContextShortcut);
   }, [settings.contexts, settingsOpen]);
+
+  useEffect(() => {
+    function handleSidebarShortcut(event: globalThis.KeyboardEvent) {
+      if (
+        event.key.toLowerCase() !== "b" ||
+        (!event.metaKey && !event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        settingsOpen
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setResizingHistory(false);
+      setHistoryCollapsed((current) => !current);
+    }
+
+    window.addEventListener("keydown", handleSidebarShortcut);
+    return () => window.removeEventListener("keydown", handleSidebarShortcut);
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (!resizingHistory) {
@@ -1201,9 +1292,10 @@ function App() {
           <button
             className="titlebar-button"
             type="button"
-            aria-label={historyCollapsed ? text.history.showSidebar : text.history.hideSidebar}
+            aria-label={sidebarToggleLabel}
+            aria-keyshortcuts="Meta+B Control+B"
             aria-expanded={!historyCollapsed}
-            title={historyCollapsed ? text.history.showSidebar : text.history.hideSidebar}
+            title={sidebarToggleTitle}
             onClick={() => {
               setHistoryCollapsed((current) => !current);
               setResizingHistory(false);

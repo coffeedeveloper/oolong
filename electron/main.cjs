@@ -44,6 +44,7 @@ const defaultSettings = {
   claudeExecutable: "claude",
   claudeModel: "",
   globalShortcut: "CommandOrControl+Shift+O",
+  clipboardShortcut: "CommandOrControl+Alt+O",
   historyLimit: 100,
   providerTimeoutSeconds: 120,
   proxyEnabled: false,
@@ -197,6 +198,10 @@ function normalizeSettings(value = {}) {
       typeof value.globalShortcut === "string" && value.globalShortcut.trim()
         ? value.globalShortcut.trim()
         : defaultSettings.globalShortcut,
+    clipboardShortcut:
+      typeof value.clipboardShortcut === "string" && value.clipboardShortcut.trim()
+        ? value.clipboardShortcut.trim()
+        : defaultSettings.clipboardShortcut,
     proxyEnabled: Boolean(value.proxyEnabled),
     httpProxy:
       typeof value.httpProxy === "string" ? value.httpProxy.trim() : defaultSettings.httpProxy,
@@ -549,7 +554,7 @@ function createWindow() {
   });
 }
 
-function focusMainWindow() {
+function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow();
   }
@@ -560,28 +565,45 @@ function focusMainWindow() {
 
   mainWindow.show();
   mainWindow.focus();
-  mainWindow.webContents.send("focus-input");
+
+  return mainWindow;
 }
 
-function openSettingsWindow() {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    createWindow();
-  }
+function sendToMainWindow(channel, payload) {
+  const window = showMainWindow();
+  const deliver = () => {
+    if (!window.isDestroyed()) {
+      window.webContents.send(channel, payload);
+    }
+  };
 
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
-  }
-
-  mainWindow.show();
-  mainWindow.focus();
-  if (mainWindow.webContents.isLoading()) {
-    mainWindow.webContents.once("did-finish-load", () => {
-      mainWindow?.webContents.send("open-settings");
-    });
+  if (window.webContents.isLoading()) {
+    window.webContents.once("did-finish-load", deliver);
     return;
   }
 
-  mainWindow.webContents.send("open-settings");
+  deliver();
+}
+
+function focusMainWindow() {
+  sendToMainWindow("focus-input");
+}
+
+function queryClipboardFromShortcut() {
+  const input = clipboard.readText();
+  if (!input.trim()) {
+    focusMainWindow();
+    return;
+  }
+
+  sendToMainWindow("clipboard-query", {
+    source: "global-shortcut",
+    input
+  });
+}
+
+function openSettingsWindow() {
+  sendToMainWindow("open-settings");
 }
 
 function configureApplicationMenu(settings = defaultSettings) {
@@ -637,14 +659,45 @@ function configureApplicationMenu(settings = defaultSettings) {
 
 async function registerShortcut(settings) {
   globalShortcut.unregisterAll();
-  const shortcut = normalizeSettings(settings).globalShortcut;
+  const normalizedSettings = normalizeSettings(settings);
+  const shortcuts = [
+    {
+      accelerator: normalizedSettings.globalShortcut,
+      label: "focus global shortcut",
+      handler: focusMainWindow
+    },
+    {
+      accelerator: normalizedSettings.clipboardShortcut,
+      label: "clipboard global shortcut",
+      handler: queryClipboardFromShortcut
+    }
+  ];
+  const registeredShortcuts = new Set();
+  let registeredAll = true;
 
-  if (!globalShortcut.register(shortcut, focusMainWindow)) {
-    console.warn(`Failed to register global shortcut: ${shortcut}`);
-    return false;
+  for (const item of shortcuts) {
+    const shortcut = item.accelerator.trim();
+    if (!shortcut) {
+      continue;
+    }
+
+    const shortcutKey = shortcut.toLowerCase();
+    if (registeredShortcuts.has(shortcutKey)) {
+      console.warn(`Skipped duplicate ${item.label}: ${shortcut}`);
+      registeredAll = false;
+      continue;
+    }
+
+    if (!globalShortcut.register(shortcut, item.handler)) {
+      console.warn(`Failed to register ${item.label}: ${shortcut}`);
+      registeredAll = false;
+      continue;
+    }
+
+    registeredShortcuts.add(shortcutKey);
   }
 
-  return true;
+  return registeredAll;
 }
 
 function findContext(settings, contextId) {
@@ -945,18 +998,7 @@ function historyPreview(text) {
 }
 
 function sendServiceInput(request) {
-  focusMainWindow();
-
-  const deliver = () => {
-    mainWindow?.webContents.send("service-input", request);
-  };
-
-  if (mainWindow?.webContents.isLoading()) {
-    mainWindow.webContents.once("did-finish-load", deliver);
-    return;
-  }
-
-  deliver();
+  sendToMainWindow("service-input", request);
 }
 
 async function handleServiceUrl(rawUrl) {

@@ -13,13 +13,14 @@ export const translations = {
   en: {
     tabs: {
       general: "General",
+      shortcuts: "Shortcuts",
       provider: "Provider",
       contexts: "Contexts",
       proxy: "Proxy"
     },
     settings: {
       title: "Settings",
-      description: "Provider, contexts, proxy, shortcut, language, and history size.",
+      description: "Provider, contexts, proxy, shortcuts, language, and history size.",
       sectionsLabel: "Settings sections",
       closeLabel: "Close settings",
       cancel: "Cancel",
@@ -28,14 +29,19 @@ export const translations = {
     },
     general: {
       title: "General",
-      description: "Language, shortcuts, history, and timeout behavior.",
+      description: "Language, history, and timeout behavior.",
       language: "Language",
-      globalShortcut: "Global shortcut",
-      pressShortcut: "Press shortcut keys...",
-      clickToRecord: "Click to record",
-      clear: "Clear",
       historyLimit: "History limit",
       providerTimeout: "Provider timeout"
+    },
+    shortcuts: {
+      title: "Shortcuts",
+      description: "Set keyboard shortcuts for opening oolong and querying clipboard text.",
+      globalShortcut: "Open oolong",
+      clipboardShortcut: "Query clipboard text",
+      pressShortcut: "Press shortcut keys...",
+      clickToRecord: "Click to record",
+      clear: "Clear"
     },
     provider: {
       title: "Provider",
@@ -84,11 +90,12 @@ export const translations = {
       settings: "Settings",
       resizeSidebar: "Resize history sidebar",
       hideSidebar: "Hide history sidebar",
-      showSidebar: "Show history sidebar"
+      showSidebar: "Show history sidebar",
+      toggleSidebarShortcut: "Cmd/Ctrl+B"
     },
     main: {
       chooseContext: "Choose context",
-      pasteFor: "Paste text for {context}...",
+      pasteFor: "Paste or type text for {context}. Press / to focus here.",
       submit: "Submit",
       clear: "Clear",
       working: "Working...",
@@ -112,6 +119,7 @@ export const translations = {
   zh: {
     tabs: {
       general: "通用",
+      shortcuts: "快捷键",
       provider: "模型服务",
       contexts: "场景",
       proxy: "代理"
@@ -127,14 +135,19 @@ export const translations = {
     },
     general: {
       title: "通用",
-      description: "语言、快捷键、历史记录和超时行为。",
+      description: "语言、历史记录和超时行为。",
       language: "界面语言",
-      globalShortcut: "全局快捷键",
-      pressShortcut: "按下快捷键...",
-      clickToRecord: "点击录入",
-      clear: "清除",
       historyLimit: "历史记录上限",
       providerTimeout: "服务超时"
+    },
+    shortcuts: {
+      title: "快捷键",
+      description: "设置打开 oolong 和查询剪贴板文本的快捷键。",
+      globalShortcut: "打开 oolong",
+      clipboardShortcut: "查询剪贴板文本",
+      pressShortcut: "按下快捷键...",
+      clickToRecord: "点击录入",
+      clear: "清除"
     },
     provider: {
       title: "模型服务",
@@ -183,11 +196,12 @@ export const translations = {
       settings: "设置",
       resizeSidebar: "调整历史记录侧边栏宽度",
       hideSidebar: "隐藏历史记录侧边栏",
-      showSidebar: "显示历史记录侧边栏"
+      showSidebar: "显示历史记录侧边栏",
+      toggleSidebarShortcut: "Cmd/Ctrl+B"
     },
     main: {
       chooseContext: "选择场景",
-      pasteFor: "粘贴文本用于{context}...",
+      pasteFor: "粘贴或输入文本用于{context}。按 / 快速聚焦输入框。",
       submit: "提交",
       clear: "清空",
       working: "处理中...",
