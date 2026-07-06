@@ -159,6 +159,19 @@ function loadingMessage(
   return formatText(text.loading.running, { provider, elapsed });
 }
 
+function providerStatusText(settings: Settings) {
+  const model =
+    settings.provider === "claude" ? settings.claudeModel.trim() : settings.codexModel.trim();
+  const modelText = model || "default";
+
+  if (settings.provider === "codex") {
+    const effort = settings.codexReasoningEffort || "default";
+    return `codex - ${modelText} - ${effort}`;
+  }
+
+  return `claude - ${modelText}`;
+}
+
 function MarkdownContent({ content }: { content: string }) {
   return (
     <div className="markdown-content">
@@ -857,6 +870,7 @@ function App() {
     defaultContexts[0];
   const canSubmit = input.trim().length > 0 && !loading && Boolean(activeContext);
   const canClear = Boolean(input || output || error || selectedEntry) && !loading;
+  const providerStatus = providerStatusText(settings);
 
   useEffect(() => {
     let mounted = true;
@@ -1174,7 +1188,9 @@ function App() {
           </button>
         </div>
         <h1>oolong</h1>
-        <div className="provider-pill">{settings.provider}</div>
+        <div className="provider-pill" title={providerStatus}>
+          {providerStatus}
+        </div>
       </header>
 
       <div

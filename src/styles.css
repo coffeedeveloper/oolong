@@ -93,13 +93,17 @@ button {
 .provider-pill {
   justify-self: end;
   margin-right: 14px;
+  max-width: min(46vw, 420px);
+  overflow: hidden;
   border: 1px solid #d7d0c5;
   border-radius: 999px;
   padding: 4px 9px;
   background: #ffffff;
   color: #6a6258;
   font-size: 12px;
-  line-height: 1;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace {
