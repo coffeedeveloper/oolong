@@ -113,6 +113,18 @@ function isTypingTarget(target: EventTarget | null) {
   );
 }
 
+function contextShortcutIndex(event: globalThis.KeyboardEvent) {
+  if (/^Digit[1-9]$/.test(event.code)) {
+    return Number(event.code.slice(5)) - 1;
+  }
+
+  if (/^[1-9]$/.test(event.key)) {
+    return Number(event.key) - 1;
+  }
+
+  return -1;
+}
+
 function createContextId() {
   return `context-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
@@ -940,6 +952,32 @@ function App() {
     window.addEventListener("keydown", handleSlashFocus);
     return () => window.removeEventListener("keydown", handleSlashFocus);
   }, [selectedEntry, settingsOpen]);
+
+  useEffect(() => {
+    function handleContextShortcut(event: globalThis.KeyboardEvent) {
+      if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || settingsOpen) {
+        return;
+      }
+
+      const shortcutIndex = contextShortcutIndex(event);
+      if (shortcutIndex < 0) {
+        return;
+      }
+
+      const nextContext = settings.contexts[shortcutIndex];
+      if (!nextContext) {
+        return;
+      }
+
+      event.preventDefault();
+      setSelectedEntry(null);
+      setSelectedContextId(nextContext.id);
+      requestAnimationFrame(() => textAreaRef.current?.focus());
+    }
+
+    window.addEventListener("keydown", handleContextShortcut);
+    return () => window.removeEventListener("keydown", handleContextShortcut);
+  }, [settings.contexts, settingsOpen]);
 
   useEffect(() => {
     if (!resizingHistory) {
