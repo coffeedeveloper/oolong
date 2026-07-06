@@ -1028,7 +1028,29 @@ function App() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!canSubmit) {
+      return;
+    }
+
     await submitRequest(activeContext.id, input);
+  }
+
+  function handleInputKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      !event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    if (canSubmit) {
+      event.currentTarget.form?.requestSubmit();
+    }
   }
 
   async function handleSaveSettings(nextSettings: Settings) {
@@ -1188,6 +1210,7 @@ function App() {
                     ref={textAreaRef}
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={handleInputKeyDown}
                     placeholder={formatText(text.main.pasteFor, {
                       context: contextDisplayLabel(activeContext, text)
                     })}
