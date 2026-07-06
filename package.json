@@ -1,6 +1,6 @@
 {
   "name": "oolong",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A macOS desktop client for translation and native English optimization.",
   "packageManager": "pnpm@11.7.0",
   "main": "electron/main.cjs",

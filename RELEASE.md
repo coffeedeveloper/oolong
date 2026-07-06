@@ -1,5 +1,41 @@
 # Release Notes
 
+## v0.3.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.3.0
+
+oolong v0.3.0 focuses on faster system-wide capture, clearer keyboard controls, and more polished main-screen output. It adds a global clipboard query shortcut, organizes shortcut settings into their own tab, and improves the readability and alignment of the composer output area.
+
+### Downloads
+
+- `oolong-0.3.0-arm64.dmg`
+- `oolong-0.3.0-arm64-mac.zip`
+
+### Included Features
+
+- Added a configurable global shortcut for reading the current clipboard, opening oolong, filling the textarea, and immediately running the selected query context.
+- Added a dedicated Shortcuts settings tab for configuring the `Open oolong` and `Query clipboard text` shortcuts.
+- Added `Cmd/Ctrl+B` to collapse or expand the history sidebar from the main window.
+- Added visible shortcut metadata to the sidebar toggle control.
+- Improved textarea placeholder copy with clearer paste/type guidance and the `/` focus shortcut hint.
+- Updated README settings documentation for the new Shortcuts tab and clipboard query workflow.
+
+### Fixes And Reliability
+
+- Improved window event delivery so focus, settings, service input, and clipboard query events wait for the renderer to finish loading when a window is recreated.
+- Prevented duplicate shortcut registration when two configured global shortcuts use the same accelerator.
+- Kept empty clipboard shortcut activation from submitting an empty query; it now only opens and focuses oolong.
+- Kept the clipboard query workflow on the currently selected context.
+- Improved output layout by aligning loading state width with the textarea.
+- Wrapped output results in a consistent bordered panel for better readability.
+- Refined shortcut labels to use action-oriented names instead of implementation-oriented labels.
+
+### Notes
+
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.2.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.2.0
