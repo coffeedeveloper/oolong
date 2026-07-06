@@ -449,6 +449,88 @@ button {
   color: #8f887f;
 }
 
+.output-loading {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  border: 1px solid #ded8cf;
+  border-radius: 8px;
+  background: #fffefa;
+  padding: 14px;
+  color: #4f4942;
+}
+
+.output-loading-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.output-loading-spinner {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #2c7fb0;
+  animation: spin 0.9s linear infinite;
+}
+
+.output-loading-progress {
+  overflow: hidden;
+  height: 4px;
+  border-radius: 999px;
+  background: #eee7dc;
+}
+
+.output-loading-progress span {
+  display: block;
+  min-width: 8%;
+  max-width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: #2c7fb0;
+  transition: width 180ms ease;
+}
+
+.output-loading-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.output-loading-lines span {
+  display: block;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eee7dc 0%, #f8f3ea 42%, #eee7dc 84%);
+  background-size: 220% 100%;
+  animation: loading-shimmer 1.3s ease-in-out infinite;
+}
+
+.output-loading-lines span:nth-child(1) {
+  width: 94%;
+}
+
+.output-loading-lines span:nth-child(2) {
+  width: 78%;
+  animation-delay: 90ms;
+}
+
+.output-loading-lines span:nth-child(3) {
+  width: 58%;
+  animation-delay: 180ms;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .markdown-content {
   overflow-wrap: anywhere;
 }
