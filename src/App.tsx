@@ -5,6 +5,7 @@ import type {
   KeyboardEvent,
   PointerEvent as ReactPointerEvent
 } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   Check,
   Copy,
@@ -15,6 +16,8 @@ import {
   Settings as SettingsIcon,
   Trash2
 } from "lucide-react";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import { api } from "./api";
 import {
   contextDisplayLabel,
@@ -142,6 +145,16 @@ function loadingMessage(
   }
 
   return formatText(text.loading.running, { provider, elapsed });
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} skipHtml>
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 const modifierKeys = new Set(["Alt", "Control", "Meta", "Shift"]);
@@ -1180,7 +1193,7 @@ function App() {
                 </section>
                 <section>
                   <h3>{text.main.output}</h3>
-                  <pre>{selectedEntry.output}</pre>
+                  <MarkdownContent content={selectedEntry.output} />
                 </section>
               </div>
 
@@ -1263,7 +1276,11 @@ function App() {
                         settings.providerTimeoutSeconds,
                         text
                       )
-                    : output || text.main.emptyResult}
+                    : output ? (
+                        <MarkdownContent content={output} />
+                      ) : (
+                        text.main.emptyResult
+                      )}
                 </div>
               </section>
             </>

@@ -316,7 +316,8 @@ button {
 }
 
 .input-wrap {
-  position: relative;
+  display: grid;
+  gap: 10px;
 }
 
 .input-wrap textarea {
@@ -330,7 +331,6 @@ button {
   background: #fffefa;
   color: #15171c;
   padding: 16px;
-  padding-bottom: 62px;
   font-size: 17px;
   line-height: 1.5;
 }
@@ -360,14 +360,11 @@ button {
 }
 
 .input-actions {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  max-width: calc(100% - 28px);
+  width: 100%;
 }
 
 .submit-button {
@@ -439,7 +436,6 @@ button {
 
 .output-body {
   min-height: 140px;
-  white-space: pre-wrap;
   color: #17191d;
   font-size: 17px;
   line-height: 1.5;
@@ -447,6 +443,125 @@ button {
 
 .output-body.muted {
   color: #8f887f;
+}
+
+.markdown-content {
+  overflow-wrap: anywhere;
+}
+
+.markdown-content > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content blockquote,
+.markdown-content pre,
+.markdown-content table {
+  margin: 0 0 12px;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin: 18px 0 8px;
+  color: #17191d;
+  line-height: 1.25;
+}
+
+.markdown-content h1 {
+  font-size: 26px;
+}
+
+.markdown-content h2 {
+  font-size: 22px;
+}
+
+.markdown-content h3 {
+  font-size: 18px;
+}
+
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-size: 16px;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 24px;
+}
+
+.markdown-content li {
+  margin: 4px 0;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid #d4cabe;
+  color: #4f4942;
+  padding: 2px 0 2px 12px;
+}
+
+.markdown-content code {
+  border-radius: 4px;
+  background: #f0ebe4;
+  color: #17191d;
+  padding: 2px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.markdown-content pre {
+  overflow: auto;
+  border: 1px solid #d8d0c5;
+  border-radius: 8px;
+  background: #17191d;
+  color: #fffefa;
+  padding: 12px;
+}
+
+.markdown-content pre code {
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  white-space: pre;
+}
+
+.markdown-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid #d8d0c5;
+  padding: 7px 9px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-content th {
+  background: #f0ebe4;
+  font-weight: 800;
+}
+
+.markdown-content a {
+  color: #1f6f9f;
+}
+
+.markdown-content input[type="checkbox"] {
+  margin-right: 6px;
 }
 
 .modal-backdrop {
@@ -803,6 +918,17 @@ button {
   background: #fffefa;
   padding: 14px;
   font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.detail-columns .markdown-content {
+  min-height: 300px;
+  overflow: auto;
+  border: 1px solid #d8d0c5;
+  border-radius: 8px;
+  background: #fffefa;
+  padding: 14px;
   font-size: 15px;
   line-height: 1.5;
 }
