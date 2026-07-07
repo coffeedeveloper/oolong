@@ -139,6 +139,14 @@ function isTypingTarget(target: EventTarget | null) {
   );
 }
 
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true'], [role='textbox']"));
+}
+
 function contextShortcutIndex(event: globalThis.KeyboardEvent) {
   if (/^Digit[1-9]$/.test(event.code)) {
     return Number(event.code.slice(5)) - 1;
@@ -987,6 +995,18 @@ function HistoryList({
   tooltipProps: TooltipPropsFactory;
 }) {
   const settingsTitle = shortcutTitle(text.history.settings, settingsShortcutLabel);
+  const historyListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedId) {
+      return;
+    }
+
+    const selectedItem = historyListRef.current?.querySelector(".history-item.selected");
+    if (selectedItem instanceof HTMLElement) {
+      selectedItem.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedId]);
 
   return (
     <aside className="history-pane">
@@ -998,7 +1018,7 @@ function HistoryList({
         </button>
       </div>
 
-      <div className="history-list">
+      <div className="history-list" ref={historyListRef}>
         {history.length === 0 ? (
           <div className="empty-history">
             <span>{text.history.empty}</span>
@@ -1273,6 +1293,42 @@ function App() {
     window.addEventListener("keydown", handleSidebarShortcut);
     return () => window.removeEventListener("keydown", handleSidebarShortcut);
   }, [settingsOpen]);
+
+  useEffect(() => {
+    function handleHistorySelectionShortcut(event: globalThis.KeyboardEvent) {
+      const key = event.key.toLowerCase();
+      if (
+        !selectedEntry ||
+        (key !== "n" && key !== "p") ||
+        !event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.shiftKey ||
+        settingsOpen ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+
+      const selectedIndex = history.findIndex((entry) => entry.id === selectedEntry.id);
+      if (selectedIndex < 0) {
+        return;
+      }
+
+      const nextIndex = key === "n" ? selectedIndex + 1 : selectedIndex - 1;
+      const nextEntry = history[nextIndex];
+      if (!nextEntry) {
+        return;
+      }
+
+      event.preventDefault();
+      setCopied(false);
+      setSelectedEntry(nextEntry);
+    }
+
+    window.addEventListener("keydown", handleHistorySelectionShortcut);
+    return () => window.removeEventListener("keydown", handleHistorySelectionShortcut);
+  }, [history, selectedEntry, settingsOpen]);
 
   useEffect(() => {
     if (!resizingHistory) {
