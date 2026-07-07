@@ -10,7 +10,7 @@ import { SidebarResizer } from "./components/history/SidebarResizer";
 import { SettingsModal } from "./components/settings/SettingsModal";
 import { TooltipOverlay } from "./components/ui/Tooltip";
 import { defaultContexts, fallbackSettings } from "./config/defaults";
-import { focusInputShortcutLabel, submitShortcutLabel } from "./config/ui";
+import { submitShortcutLabel } from "./config/ui";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useElapsedTimer } from "./hooks/useElapsedTimer";
 import { useHistorySidebar } from "./hooks/useHistorySidebar";
@@ -58,7 +58,6 @@ function App() {
   const providerStatus = providerStatusText(settings);
   const sidebarToggleLabel = historyCollapsed ? text.history.showSidebar : text.history.hideSidebar;
   const sidebarToggleTitle = shortcutTitle(sidebarToggleLabel, text.history.toggleSidebarShortcut);
-  const inputShortcutTitle = shortcutTitle(text.main.focusInput, focusInputShortcutLabel);
   const submitButtonLabel = loading ? text.main.working : text.main.submit;
   const submitButtonTitle = shortcutTitle(submitButtonLabel, submitShortcutLabel);
 
@@ -319,7 +318,6 @@ function App() {
                 canClear={canClear}
                 text={text}
                 textAreaRef={textAreaRef}
-                inputShortcutTitle={inputShortcutTitle}
                 submitButtonTitle={submitButtonTitle}
                 submitButtonLabel={submitButtonLabel}
                 tooltipProps={getTooltipProps}

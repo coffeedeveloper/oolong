@@ -23,7 +23,6 @@ export function Composer({
   canClear,
   text,
   textAreaRef,
-  inputShortcutTitle,
   submitButtonTitle,
   submitButtonLabel,
   tooltipProps,
@@ -41,7 +40,6 @@ export function Composer({
   canClear: boolean;
   text: ReturnType<typeof getUiText>;
   textAreaRef: RefObject<HTMLTextAreaElement | null>;
-  inputShortcutTitle: string;
   submitButtonTitle: string;
   submitButtonLabel: string;
   tooltipProps: TooltipPropsFactory;
@@ -79,7 +77,7 @@ export function Composer({
       </div>
 
       <div className="input-wrap">
-        <div className="input-field" {...tooltipProps(inputShortcutTitle)}>
+        <div className="input-field">
           <textarea
             ref={textAreaRef}
             value={input}
