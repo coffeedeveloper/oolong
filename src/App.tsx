@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
+  FocusEvent,
   FormEvent,
   KeyboardEvent,
+  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent
 } from "react";
 import ReactMarkdown from "react-markdown";
@@ -76,6 +78,24 @@ type ModelOption = {
   value: string;
   label: string;
 };
+
+type TooltipPlacement = "top" | "right" | "bottom" | "left";
+
+type TooltipState = {
+  text: string;
+  placement: TooltipPlacement;
+  x: number;
+  y: number;
+};
+
+type TooltipTargetProps = {
+  onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => void;
+  onMouseLeave: () => void;
+  onFocus: (event: FocusEvent<HTMLElement>) => void;
+  onBlur: (event: FocusEvent<HTMLElement>) => void;
+};
+
+type TooltipPropsFactory = (text: string, placement?: TooltipPlacement) => TooltipTargetProps;
 
 const customModelValue = "__custom__";
 const defaultHistoryWidth = 236;
@@ -303,6 +323,68 @@ function contextShortcutLabel(index: number) {
 
 function contextAriaShortcut(index: number) {
   return `Meta+${index + 1}`;
+}
+
+function tooltipPosition(element: HTMLElement, placement: TooltipPlacement): TooltipState {
+  const rect = element.getBoundingClientRect();
+  const gap = 10;
+  const horizontalMargin = 154;
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  const clampX = (value: number) =>
+    Math.min(window.innerWidth - horizontalMargin, Math.max(horizontalMargin, value));
+  const clampY = (value: number) =>
+    Math.min(window.innerHeight - 24, Math.max(24, value));
+
+  if (placement === "bottom") {
+    return {
+      text: "",
+      placement,
+      x: clampX(x),
+      y: clampY(rect.bottom + gap)
+    };
+  }
+
+  if (placement === "right") {
+    return {
+      text: "",
+      placement,
+      x: rect.right + gap,
+      y: clampY(y)
+    };
+  }
+
+  if (placement === "left") {
+    return {
+      text: "",
+      placement,
+      x: rect.left - gap,
+      y: clampY(y)
+    };
+  }
+
+  return {
+    text: "",
+    placement,
+    x: clampX(x),
+    y: clampY(rect.top - gap)
+  };
+}
+
+function TooltipOverlay({ tooltip }: { tooltip: TooltipState | null }) {
+  if (!tooltip) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`app-tooltip ${tooltip.placement}`}
+      style={{ left: tooltip.x, top: tooltip.y } as CSSProperties}
+      role="tooltip"
+    >
+      {tooltip.text}
+    </div>
+  );
 }
 
 function ModelPicker({
@@ -892,7 +974,8 @@ function HistoryList({
   text,
   onSelect,
   onClear,
-  onOpenSettings
+  onOpenSettings,
+  tooltipProps
 }: {
   history: HistoryEntry[];
   selectedId?: string;
@@ -901,6 +984,7 @@ function HistoryList({
   onSelect: (entry: HistoryEntry) => void;
   onClear: () => void;
   onOpenSettings: () => void;
+  tooltipProps: TooltipPropsFactory;
 }) {
   const settingsTitle = shortcutTitle(text.history.settings, settingsShortcutLabel);
 
@@ -941,7 +1025,7 @@ function HistoryList({
         className="settings-button"
         type="button"
         aria-keyshortcuts="Meta+,"
-        title={settingsTitle}
+        {...tooltipProps(settingsTitle)}
         onClick={onOpenSettings}
       >
         <SettingsIcon size={16} aria-hidden="true" />
@@ -966,6 +1050,7 @@ function App() {
   const [historyWidth, setHistoryWidth] = useState(defaultHistoryWidth);
   const [resizingHistory, setResizingHistory] = useState(false);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const resizeStartRef = useRef({ x: 0, width: defaultHistoryWidth });
   const activeContextIdRef = useRef("translate");
@@ -984,6 +1069,30 @@ function App() {
   const inputShortcutTitle = shortcutTitle(text.main.focusInput, focusInputShortcutLabel);
   const submitButtonLabel = loading ? text.main.working : text.main.submit;
   const submitButtonTitle = shortcutTitle(submitButtonLabel, submitShortcutLabel);
+
+  function getTooltipProps(text: string, placement: TooltipPlacement = "top"): TooltipTargetProps {
+    const show = (element: HTMLElement) => {
+      setTooltip({
+        ...tooltipPosition(element, placement),
+        text
+      });
+    };
+
+    return {
+      onMouseEnter: (event) => show(event.currentTarget),
+      onMouseLeave: () => setTooltip(null),
+      onFocus: (event) => {
+        if (event.currentTarget === event.target) {
+          show(event.currentTarget);
+        }
+      },
+      onBlur: (event) => {
+        if (event.currentTarget === event.target) {
+          setTooltip(null);
+        }
+      }
+    };
+  }
 
   useEffect(() => {
     activeContextIdRef.current = activeContext.id;
@@ -1054,6 +1163,27 @@ function App() {
     const timer = window.setTimeout(() => setCopied(false), 1400);
     return () => window.clearTimeout(timer);
   }, [copied]);
+
+  useEffect(() => {
+    if (!tooltip) {
+      return undefined;
+    }
+
+    const hideTooltip = () => setTooltip(null);
+    window.addEventListener("resize", hideTooltip);
+    window.addEventListener("scroll", hideTooltip, true);
+
+    return () => {
+      window.removeEventListener("resize", hideTooltip);
+      window.removeEventListener("scroll", hideTooltip, true);
+    };
+  }, [tooltip]);
+
+  useEffect(() => {
+    if (settingsOpen) {
+      setTooltip(null);
+    }
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (!loading) {
@@ -1326,7 +1456,7 @@ function App() {
             aria-label={sidebarToggleLabel}
             aria-keyshortcuts={sidebarToggleAriaShortcut}
             aria-expanded={!historyCollapsed}
-            title={sidebarToggleTitle}
+            {...getTooltipProps(sidebarToggleTitle, "bottom")}
             onClick={() => {
               setHistoryCollapsed((current) => !current);
               setResizingHistory(false);
@@ -1340,8 +1470,8 @@ function App() {
           </button>
         </div>
         <h1>oolong</h1>
-        <div className="provider-pill" title={providerStatus}>
-          {providerStatus}
+        <div className="provider-pill" {...getTooltipProps(providerStatus, "bottom")}>
+          <span>{providerStatus}</span>
         </div>
       </header>
 
@@ -1361,6 +1491,7 @@ function App() {
               onSelect={setSelectedEntry}
               onClear={handleClearHistory}
               onOpenSettings={() => setSettingsOpen(true)}
+              tooltipProps={getTooltipProps}
             />
 
             <div
@@ -1372,7 +1503,7 @@ function App() {
               aria-valuemax={maxHistoryWidth}
               aria-valuenow={historyWidth}
               tabIndex={0}
-              title={text.history.resizeSidebar}
+              {...getTooltipProps(text.history.resizeSidebar, "right")}
               onPointerDown={handleHistoryResizePointerDown}
               onKeyDown={handleHistoryResizeKeyDown}
             />
@@ -1422,9 +1553,12 @@ function App() {
                         key={context.id}
                         className={context.id === activeContext.id ? "active" : ""}
                         aria-keyshortcuts={hasShortcut ? contextAriaShortcut(index) : undefined}
-                        title={
-                          hasShortcut ? shortcutTitle(contextLabel, contextShortcutLabel(index)) : contextLabel
-                        }
+                        {...getTooltipProps(
+                          hasShortcut
+                            ? shortcutTitle(contextLabel, contextShortcutLabel(index))
+                            : contextLabel,
+                          "bottom"
+                        )}
                         onClick={() => setSelectedContextId(context.id)}
                       >
                         {contextLabel}
@@ -1434,17 +1568,18 @@ function App() {
                 </div>
 
                 <div className="input-wrap">
-                  <textarea
-                    ref={textAreaRef}
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    onKeyDown={handleInputKeyDown}
-                    placeholder={formatText(text.main.pasteFor, {
-                      context: contextDisplayLabel(activeContext, text)
-                    })}
-                    title={inputShortcutTitle}
-                    autoFocus
-                  />
+                  <div className="input-field" {...getTooltipProps(inputShortcutTitle)}>
+                    <textarea
+                      ref={textAreaRef}
+                      value={input}
+                      onChange={(event) => setInput(event.target.value)}
+                      onKeyDown={handleInputKeyDown}
+                      placeholder={formatText(text.main.pasteFor, {
+                        context: contextDisplayLabel(activeContext, text)
+                      })}
+                      autoFocus
+                    />
+                  </div>
                   <div className="input-actions">
                     <button
                       className="input-clear-button"
@@ -1459,7 +1594,7 @@ function App() {
                       className="submit-button"
                       type="submit"
                       aria-keyshortcuts={submitAriaShortcut}
-                      title={submitButtonTitle}
+                      {...getTooltipProps(submitButtonTitle)}
                       disabled={!canSubmit}
                     >
                       {loading ? (
@@ -1521,6 +1656,8 @@ function App() {
           onSave={handleSaveSettings}
         />
       ) : null}
+
+      <TooltipOverlay tooltip={tooltip} />
     </div>
   );
 }

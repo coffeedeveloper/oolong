@@ -92,9 +92,11 @@ button {
 
 .provider-pill {
   justify-self: end;
+  display: flex;
+  align-items: center;
   margin-right: 14px;
   max-width: min(46vw, 420px);
-  overflow: hidden;
+  min-width: 0;
   border: 1px solid #d7d0c5;
   border-radius: 999px;
   padding: 4px 9px;
@@ -102,8 +104,95 @@ button {
   color: #6a6258;
   font-size: 12px;
   line-height: 1.2;
+}
+
+.provider-pill span {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-tooltip {
+  position: fixed;
+  z-index: 40;
+  max-width: min(280px, calc(100vw - 28px));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  background: #25282d;
+  box-shadow:
+    0 12px 30px rgba(22, 24, 29, 0.18),
+    0 2px 8px rgba(22, 24, 29, 0.12);
+  color: #fffefa;
+  padding: 6px 9px;
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  word-break: break-word;
+  animation: tooltip-fade 0.12s ease-out;
+}
+
+.app-tooltip::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #25282d;
+  transform: rotate(45deg);
+}
+
+.app-tooltip.top {
+  transform: translate(-50%, calc(-100% - 2px));
+}
+
+.app-tooltip.top::after {
+  bottom: -4px;
+  left: calc(50% - 4px);
+}
+
+.app-tooltip.bottom {
+  transform: translate(-50%, 2px);
+}
+
+.app-tooltip.bottom::after {
+  top: -4px;
+  left: calc(50% - 4px);
+}
+
+.app-tooltip.right {
+  transform: translate(2px, -50%);
+}
+
+.app-tooltip.right::after {
+  top: calc(50% - 4px);
+  left: -4px;
+}
+
+.app-tooltip.left {
+  transform: translate(calc(-100% - 2px), -50%);
+}
+
+.app-tooltip.left::after {
+  top: calc(50% - 4px);
+  right: -4px;
+}
+
+@keyframes tooltip-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-tooltip {
+    animation: none;
+  }
 }
 
 .workspace {
@@ -325,6 +414,10 @@ button {
 .input-wrap {
   display: grid;
   gap: 10px;
+}
+
+.input-field {
+  min-width: 0;
 }
 
 .input-wrap textarea {
