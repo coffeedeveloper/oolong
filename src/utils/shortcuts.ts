@@ -106,8 +106,8 @@ export function shortcutFromKeyboardEvent(event: KeyboardEvent<HTMLElement>) {
   return [...parts, key].join("+");
 }
 
-export function shortcutTitle(label: string, shortcut: string) {
-  return `${label} (${shortcut})`;
+export function shortcutTitle(_label: string, shortcut: string) {
+  return shortcut;
 }
 
 export function contextShortcutLabel(index: number) {

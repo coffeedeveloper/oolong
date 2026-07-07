@@ -290,7 +290,6 @@ function App() {
               minWidth={minHistoryWidth}
               maxWidth={maxHistoryWidth}
               width={historyWidth}
-              tooltipProps={getTooltipProps}
               onPointerDown={handleHistoryResizePointerDown}
               onKeyDown={handleHistoryResizeKeyDown}
             />

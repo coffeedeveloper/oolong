@@ -114,6 +114,8 @@ button {
 }
 
 .app-tooltip {
+  --tooltip-offset-x: 0px;
+  --tooltip-offset-y: 0px;
   position: fixed;
   z-index: 40;
   max-width: min(280px, calc(100vw - 28px));
@@ -144,38 +146,50 @@ button {
 }
 
 .app-tooltip.top {
-  transform: translate(-50%, calc(-100% - 2px));
+  transform: translate(
+    calc(-50% + var(--tooltip-offset-x)),
+    calc(-100% - 2px + var(--tooltip-offset-y))
+  );
 }
 
 .app-tooltip.top::after {
   bottom: -4px;
-  left: calc(50% - 4px);
+  left: clamp(6px, calc(50% - var(--tooltip-offset-x) - 4px), calc(100% - 14px));
 }
 
 .app-tooltip.bottom {
-  transform: translate(-50%, 2px);
+  transform: translate(
+    calc(-50% + var(--tooltip-offset-x)),
+    calc(2px + var(--tooltip-offset-y))
+  );
 }
 
 .app-tooltip.bottom::after {
   top: -4px;
-  left: calc(50% - 4px);
+  left: clamp(6px, calc(50% - var(--tooltip-offset-x) - 4px), calc(100% - 14px));
 }
 
 .app-tooltip.right {
-  transform: translate(2px, -50%);
+  transform: translate(
+    calc(2px + var(--tooltip-offset-x)),
+    calc(-50% + var(--tooltip-offset-y))
+  );
 }
 
 .app-tooltip.right::after {
-  top: calc(50% - 4px);
+  top: clamp(6px, calc(50% - var(--tooltip-offset-y) - 4px), calc(100% - 14px));
   left: -4px;
 }
 
 .app-tooltip.left {
-  transform: translate(calc(-100% - 2px), -50%);
+  transform: translate(
+    calc(-100% - 2px + var(--tooltip-offset-x)),
+    calc(-50% + var(--tooltip-offset-y))
+  );
 }
 
 .app-tooltip.left::after {
-  top: calc(50% - 4px);
+  top: clamp(6px, calc(50% - var(--tooltip-offset-y) - 4px), calc(100% - 14px));
   right: -4px;
 }
 

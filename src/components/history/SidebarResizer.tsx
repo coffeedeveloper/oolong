@@ -1,5 +1,4 @@
 import { getUiText } from "../../i18n";
-import type { TooltipPropsFactory } from "../ui/Tooltip";
 import type { KeyboardEventHandler, PointerEventHandler } from "react";
 
 export function SidebarResizer({
@@ -7,7 +6,6 @@ export function SidebarResizer({
   minWidth,
   maxWidth,
   width,
-  tooltipProps,
   onPointerDown,
   onKeyDown
 }: {
@@ -15,7 +13,6 @@ export function SidebarResizer({
   minWidth: number;
   maxWidth: number;
   width: number;
-  tooltipProps: TooltipPropsFactory;
   onPointerDown: PointerEventHandler<HTMLDivElement>;
   onKeyDown: KeyboardEventHandler<HTMLDivElement>;
 }) {
@@ -29,7 +26,6 @@ export function SidebarResizer({
       aria-valuemax={maxWidth}
       aria-valuenow={width}
       tabIndex={0}
-      {...tooltipProps(text.history.resizeSidebar, "right")}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     />
