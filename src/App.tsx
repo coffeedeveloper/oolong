@@ -82,6 +82,11 @@ const defaultHistoryWidth = 236;
 const minHistoryWidth = 150;
 const maxHistoryWidth = 420;
 const minMainWidth = 360;
+const submitShortcutLabel = "Cmd+Enter";
+const focusInputShortcutLabel = "/";
+const settingsShortcutLabel = "Cmd+,";
+const sidebarToggleAriaShortcut = "Meta+\\";
+const submitAriaShortcut = "Meta+Enter";
 
 const codexModelOptions: ModelOption[] = [
   { value: "gpt-5.5", label: "GPT-5.5" },
@@ -286,6 +291,18 @@ function shortcutFromKeyboardEvent(event: KeyboardEvent<HTMLElement>) {
   }
 
   return [...parts, key].join("+");
+}
+
+function shortcutTitle(label: string, shortcut: string) {
+  return `${label} (${shortcut})`;
+}
+
+function contextShortcutLabel(index: number) {
+  return `Cmd+${index + 1}`;
+}
+
+function contextAriaShortcut(index: number) {
+  return `Meta+${index + 1}`;
 }
 
 function ModelPicker({
@@ -885,6 +902,8 @@ function HistoryList({
   onClear: () => void;
   onOpenSettings: () => void;
 }) {
+  const settingsTitle = shortcutTitle(text.history.settings, settingsShortcutLabel);
+
   return (
     <aside className="history-pane">
       <div className="history-header">
@@ -918,7 +937,13 @@ function HistoryList({
         )}
       </div>
 
-      <button className="settings-button" type="button" onClick={onOpenSettings}>
+      <button
+        className="settings-button"
+        type="button"
+        aria-keyshortcuts="Meta+,"
+        title={settingsTitle}
+        onClick={onOpenSettings}
+      >
         <SettingsIcon size={16} aria-hidden="true" />
         <span>{text.history.settings}</span>
       </button>
@@ -955,7 +980,10 @@ function App() {
   const canClear = Boolean(input || output || error || selectedEntry) && !loading;
   const providerStatus = providerStatusText(settings);
   const sidebarToggleLabel = historyCollapsed ? text.history.showSidebar : text.history.hideSidebar;
-  const sidebarToggleTitle = `${sidebarToggleLabel} (${text.history.toggleSidebarShortcut})`;
+  const sidebarToggleTitle = shortcutTitle(sidebarToggleLabel, text.history.toggleSidebarShortcut);
+  const inputShortcutTitle = shortcutTitle(text.main.focusInput, focusInputShortcutLabel);
+  const submitButtonLabel = loading ? text.main.working : text.main.submit;
+  const submitButtonTitle = shortcutTitle(submitButtonLabel, submitShortcutLabel);
 
   useEffect(() => {
     activeContextIdRef.current = activeContext.id;
@@ -1094,9 +1122,12 @@ function App() {
 
   useEffect(() => {
     function handleSidebarShortcut(event: globalThis.KeyboardEvent) {
+      const isSidebarToggleKey = event.key === "\\" || event.code === "Backslash";
+
       if (
-        event.key.toLowerCase() !== "b" ||
-        (!event.metaKey && !event.ctrlKey) ||
+        !isSidebarToggleKey ||
+        !event.metaKey ||
+        event.ctrlKey ||
         event.altKey ||
         event.shiftKey ||
         settingsOpen
@@ -1293,7 +1324,7 @@ function App() {
             className="titlebar-button"
             type="button"
             aria-label={sidebarToggleLabel}
-            aria-keyshortcuts="Meta+B Control+B"
+            aria-keyshortcuts={sidebarToggleAriaShortcut}
             aria-expanded={!historyCollapsed}
             title={sidebarToggleTitle}
             onClick={() => {
@@ -1381,16 +1412,25 @@ function App() {
             <>
               <form className="composer" onSubmit={handleSubmit}>
                 <div className="segmented mode-switch" role="group" aria-label={text.main.chooseContext}>
-                  {settings.contexts.map((context) => (
-                    <button
-                      type="button"
-                      key={context.id}
-                      className={context.id === activeContext.id ? "active" : ""}
-                      onClick={() => setSelectedContextId(context.id)}
-                    >
-                      {contextDisplayLabel(context, text)}
-                    </button>
-                  ))}
+                  {settings.contexts.map((context, index) => {
+                    const contextLabel = contextDisplayLabel(context, text);
+                    const hasShortcut = index < 9;
+
+                    return (
+                      <button
+                        type="button"
+                        key={context.id}
+                        className={context.id === activeContext.id ? "active" : ""}
+                        aria-keyshortcuts={hasShortcut ? contextAriaShortcut(index) : undefined}
+                        title={
+                          hasShortcut ? shortcutTitle(contextLabel, contextShortcutLabel(index)) : contextLabel
+                        }
+                        onClick={() => setSelectedContextId(context.id)}
+                      >
+                        {contextLabel}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="input-wrap">
@@ -1402,6 +1442,7 @@ function App() {
                     placeholder={formatText(text.main.pasteFor, {
                       context: contextDisplayLabel(activeContext, text)
                     })}
+                    title={inputShortcutTitle}
                     autoFocus
                   />
                   <div className="input-actions">
@@ -1414,13 +1455,19 @@ function App() {
                       <Trash2 size={16} aria-hidden="true" />
                       <span>{text.main.clear}</span>
                     </button>
-                    <button className="submit-button" type="submit" disabled={!canSubmit}>
+                    <button
+                      className="submit-button"
+                      type="submit"
+                      aria-keyshortcuts={submitAriaShortcut}
+                      title={submitButtonTitle}
+                      disabled={!canSubmit}
+                    >
                       {loading ? (
                         <LoaderCircle className="button-spinner" size={16} aria-hidden="true" />
                       ) : (
                         <Send size={16} aria-hidden="true" />
                       )}
-                      <span>{loading ? text.main.working : text.main.submit}</span>
+                      <span>{submitButtonLabel}</span>
                     </button>
                   </div>
                 </div>

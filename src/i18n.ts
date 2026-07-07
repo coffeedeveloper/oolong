@@ -91,10 +91,11 @@ export const translations = {
       resizeSidebar: "Resize history sidebar",
       hideSidebar: "Hide history sidebar",
       showSidebar: "Show history sidebar",
-      toggleSidebarShortcut: "Cmd/Ctrl+B"
+      toggleSidebarShortcut: "Cmd+\\"
     },
     main: {
       chooseContext: "Choose context",
+      focusInput: "Focus input",
       pasteFor: "Paste or type text for {context}. Press / to focus here.",
       submit: "Submit",
       clear: "Clear",
@@ -197,10 +198,11 @@ export const translations = {
       resizeSidebar: "调整历史记录侧边栏宽度",
       hideSidebar: "隐藏历史记录侧边栏",
       showSidebar: "显示历史记录侧边栏",
-      toggleSidebarShortcut: "Cmd/Ctrl+B"
+      toggleSidebarShortcut: "Cmd+\\"
     },
     main: {
       chooseContext: "选择场景",
+      focusInput: "聚焦输入框",
       pasteFor: "粘贴或输入文本用于{context}。按 / 快速聚焦输入框。",
       submit: "提交",
       clear: "清空",
