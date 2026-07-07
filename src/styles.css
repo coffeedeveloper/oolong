@@ -119,7 +119,9 @@ button {
 .history-pane {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  min-height: 0;
   min-width: 0;
+  overflow: hidden;
   background: #fffcf7;
 }
 
@@ -203,7 +205,8 @@ button {
 }
 
 .history-list {
-  overflow: auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 0 8px 10px;
 }
 
