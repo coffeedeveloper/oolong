@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "tsc -b && vite build",
-    "package": "pnpm build && electron-builder",
+    "clean:release": "node scripts/clean-release.mjs",
+    "package": "pnpm clean:release && pnpm build && electron-builder",
     "lint": "tsc -b --noEmit"
   },
   "keywords": [
