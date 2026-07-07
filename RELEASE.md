@@ -1,5 +1,44 @@
 # Release Notes
 
+## v0.4.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.4.0
+
+oolong v0.4.0 focuses on maintainability and keyboard-driven daily use. It splits the large renderer entry point into focused modules, improves history navigation and shortcut hints, and tightens the release packaging flow so local release output starts cleanly.
+
+### Downloads
+
+- `oolong-0.4.0-arm64.dmg`
+- `oolong-0.4.0-arm64-mac.zip`
+
+### Included Features
+
+- Added keyboard navigation for selected history entries with `Ctrl+N` and `Ctrl+P`.
+- Added custom tooltip support for titlebar, sidebar, context, settings, and submit controls.
+- Updated the history sidebar toggle shortcut to `Cmd+\`.
+- Added clearer shortcut hints for context switching, sidebar toggling, settings, and submit actions.
+
+### Architecture And Maintenance
+
+- Split `App.tsx` into focused renderer modules for main UI, history, settings, shared UI, hooks, utilities, and config.
+- Moved renderer defaults, provider model options, UI constants, shortcut helpers, loading copy, and provider status formatting into dedicated modules.
+- Updated the browser preview API to reuse shared renderer defaults instead of carrying a duplicate copy.
+- Added `scripts/clean-release.mjs` and wired `pnpm package` to clear stale release artifacts before packaging.
+- Expanded repository contributor guidance with project structure, validation commands, style conventions, and security notes.
+
+### Fixes And Reliability
+
+- Kept the settings button pinned at the bottom of the history sidebar while long history lists scroll independently.
+- Improved provider pill truncation so long provider/model status text stays contained.
+- Removed the textarea hover tooltip for the `/` focus shortcut while keeping the keyboard shortcut itself.
+- Preserved existing CSS class names and IPC/storage behavior during the renderer architecture split.
+
+### Notes
+
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.3.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.3.0
