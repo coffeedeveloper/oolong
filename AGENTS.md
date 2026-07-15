@@ -80,11 +80,23 @@ Pull requests must include:
 
 Do not merge a draft PR, a PR with failing required checks, or a PR whose merge state is not clean. The current repository convention is to squash merge feature PRs, use the PR title as the final commit title, and delete the remote feature branch after merging. Confirm the merged commit exists on `origin/main` before starting release work.
 
-## Release Process
+## Release Process (Explicit Request Only)
+
+Never prepare or publish a release proactively. A release is authorized only when the user explicitly asks to publish a release or explicitly requests a version/tag such as `v0.6.0`. Requests to commit, push, publish code, open or merge a PR, update documentation, or finish a feature do not authorize a release and must not be interpreted as release intent.
+
+Without an explicit release request, do not:
+
+- change the version in `package.json`;
+- add a new version section to `RELEASE.md`;
+- create or push a version tag;
+- trigger, rerun, or monitor the release workflow for a new version;
+- create, edit, or publish a GitHub Release.
+
+In that case, stop after the requested code submission or merge workflow and report that no release was created. Discussing release impact or recommending a future version is allowed, but it must not cause any release-side effect.
 
 Use Semantic Versioning. Increment `PATCH` for backward-compatible fixes, `MINOR` for backward-compatible features, and `MAJOR` for breaking changes. All new release tags use the `vX.Y.Z` form; do not create new unprefixed version tags.
 
-Release only from an up-to-date, clean `main` after all intended PRs are merged:
+When a release is explicitly requested, release only from an up-to-date, clean `main` after all intended PRs are merged:
 
 ```bash
 git switch main
