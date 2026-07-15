@@ -1,4 +1,4 @@
-const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, shell } = require("electron");
+const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, net, shell } = require("electron");
 const path = require("node:path");
 const { constants: fsConstants } = require("node:fs");
 const fs = require("node:fs/promises");
@@ -9,6 +9,9 @@ const serviceWorkflowName = "oolong.translate content";
 const serviceWorkflowFileName = `${serviceWorkflowName}.workflow`;
 const serviceContextId = "translate";
 const pendingServiceUrls = [];
+const latestReleaseApiUrl =
+  "https://api.github.com/repos/coffeedeveloper/oolong/releases/latest";
+const latestReleaseUrl = "https://github.com/coffeedeveloper/oolong/releases/latest";
 
 const defaultContexts = [
   {
@@ -36,6 +39,7 @@ const defaultContexts = [
 
 const defaultSettings = {
   uiLanguage: "en",
+  launchAtLogin: false,
   provider: "codex",
   codexExecutable: "codex",
   codexModel: "",
@@ -56,6 +60,7 @@ const defaultSettings = {
 let mainWindow = null;
 let storePath = "";
 let userBinPathsCache = null;
+let updateCheckPromise = null;
 const allowedCodexReasoningEfforts = new Set(["low", "medium", "high", "xhigh"]);
 
 const uiMessages = {
@@ -98,6 +103,74 @@ function formatMessage(value, params) {
       result.split(`{${key}}`).join(String(replacement)),
     value
   );
+}
+
+function parseVersion(value) {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(String(value).trim());
+  if (!match) {
+    return null;
+  }
+
+  return {
+    version: `${match[1]}.${match[2]}.${match[3]}`,
+    parts: match.slice(1, 4).map(Number),
+    prerelease: Boolean(match[4])
+  };
+}
+
+function isNewerVersion(candidate, current) {
+  for (let index = 0; index < candidate.parts.length; index += 1) {
+    if (candidate.parts[index] !== current.parts[index]) {
+      return candidate.parts[index] > current.parts[index];
+    }
+  }
+
+  return current.prerelease && !candidate.prerelease;
+}
+
+async function fetchAvailableUpdate() {
+  if (!app.isPackaged) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await net.fetch(latestReleaseApiUrl, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub returned ${response.status}`);
+    }
+
+    const release = await response.json();
+    const candidate = parseVersion(release?.tag_name);
+    const current = parseVersion(app.getVersion());
+    if (!candidate || !current || !isNewerVersion(candidate, current)) {
+      return null;
+    }
+
+    return { version: candidate.version };
+  } catch (error) {
+    console.warn("Failed to check for updates:", error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function checkForUpdates() {
+  if (!updateCheckPromise) {
+    updateCheckPromise = fetchAvailableUpdate();
+  }
+
+  return updateCheckPromise;
 }
 
 function appendLegacySystemPrompt(prompt, systemPrompt) {
@@ -175,6 +248,7 @@ function normalizeSettings(value = {}) {
     ...defaultSettings,
     ...value,
     uiLanguage: normalizeUiLanguage(value.uiLanguage),
+    launchAtLogin: Boolean(value.launchAtLogin),
     provider,
     codexExecutable:
       typeof value.codexExecutable === "string" && value.codexExecutable.trim()
@@ -215,6 +289,30 @@ function normalizeStore(value = {}) {
     settings: normalizeSettings(value.settings),
     history: Array.isArray(value.history) ? value.history : []
   };
+}
+
+function syncLoginItemState(settings) {
+  if (process.platform !== "darwin" || !app.isPackaged) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    launchAtLogin: app.getLoginItemSettings().openAtLogin
+  };
+}
+
+function applyLoginItemSetting(settings) {
+  if (process.platform !== "darwin" || !app.isPackaged) {
+    return settings;
+  }
+
+  const current = app.getLoginItemSettings();
+  if (current.openAtLogin !== settings.launchAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+  }
+
+  return syncLoginItemState(settings);
 }
 
 async function ensureStorePath() {
@@ -1056,16 +1154,23 @@ app.on("open-url", (event, url) => {
 
 ipcMain.handle("settings:get", async () => {
   const store = await readStore();
-  return store.settings;
+  return syncLoginItemState(store.settings);
 });
 
 ipcMain.handle("settings:save", async (_, settings) => {
   const store = await readStore();
-  store.settings = normalizeSettings(settings);
+  store.settings = applyLoginItemSetting(normalizeSettings(settings));
   await writeStore(store);
   configureApplicationMenu(store.settings);
   await registerShortcut(store.settings);
   return store.settings;
+});
+
+ipcMain.handle("updates:check", () => checkForUpdates());
+
+ipcMain.handle("updates:open-download", async () => {
+  await shell.openExternal(latestReleaseUrl);
+  return true;
 });
 
 ipcMain.handle("history:list", async () => {

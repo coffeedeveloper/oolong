@@ -20,7 +20,7 @@ export const translations = {
     },
     settings: {
       title: "Settings",
-      description: "Provider, contexts, proxy, shortcuts, language, and history size.",
+      description: "Provider, contexts, proxy, shortcuts, startup, language, and history size.",
       sectionsLabel: "Settings sections",
       closeLabel: "Close settings",
       cancel: "Cancel",
@@ -29,7 +29,8 @@ export const translations = {
     },
     general: {
       title: "General",
-      description: "Language, history, and timeout behavior.",
+      description: "Language, startup, history, and timeout behavior.",
+      launchAtLogin: "Open at login",
       language: "Language",
       historyLimit: "History limit",
       providerTimeout: "Provider timeout"
@@ -80,6 +81,12 @@ export const translations = {
       useProxy: "Use proxy",
       httpProxy: "HTTP proxy",
       allProxy: "All proxy"
+    },
+    updates: {
+      title: "Update available",
+      available: "oolong {version} is ready to download.",
+      download: "Download",
+      dismiss: "Dismiss update"
     },
     history: {
       title: "History",
@@ -134,7 +141,7 @@ export const translations = {
     },
     settings: {
       title: "设置",
-      description: "配置模型服务、场景、代理、快捷键、语言和历史记录。",
+      description: "配置模型服务、场景、代理、快捷键、开机启动、语言和历史记录。",
       sectionsLabel: "设置分区",
       closeLabel: "关闭设置",
       cancel: "取消",
@@ -143,7 +150,8 @@ export const translations = {
     },
     general: {
       title: "通用",
-      description: "语言、历史记录和超时行为。",
+      description: "语言、开机启动、历史记录和超时行为。",
+      launchAtLogin: "开机自启动",
       language: "界面语言",
       historyLimit: "历史记录上限",
       providerTimeout: "服务超时"
@@ -194,6 +202,12 @@ export const translations = {
       useProxy: "启用代理",
       httpProxy: "HTTP 代理",
       allProxy: "通用代理"
+    },
+    updates: {
+      title: "发现新版本",
+      available: "oolong {version} 已可下载。",
+      download: "前往下载",
+      dismiss: "暂不更新"
     },
     history: {
       title: "历史记录",

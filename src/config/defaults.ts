@@ -26,6 +26,7 @@ export const defaultContexts: PromptContext[] = [
 
 export const fallbackSettings: Settings = {
   uiLanguage: "en",
+  launchAtLogin: false,
   provider: "codex",
   codexExecutable: "codex",
   codexModel: "",

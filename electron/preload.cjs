@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("oolong", {
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (settings) => ipcRenderer.invoke("settings:save", settings),
+  checkForUpdates: () => ipcRenderer.invoke("updates:check"),
+  openUpdateDownload: () => ipcRenderer.invoke("updates:open-download"),
   getHistory: () => ipcRenderer.invoke("history:list"),
   clearHistory: () => ipcRenderer.invoke("history:clear"),
   deleteHistoryEntry: (id) => ipcRenderer.invoke("history:delete", id),

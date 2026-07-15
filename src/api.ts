@@ -10,6 +10,7 @@ import { defaultContexts, fallbackSettings } from "./config/defaults";
 import { contextDisplayLabel, getUiText, normalizeUiLanguage } from "./i18n";
 
 const storageKey = "oolong-preview-store";
+const latestReleaseUrl = "https://github.com/coffeedeveloper/oolong/releases/latest";
 
 interface PreviewStore {
   settings: Settings;
@@ -72,6 +73,7 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
     ...fallbackSettings,
     ...value,
     uiLanguage: normalizeUiLanguage(value.uiLanguage),
+    launchAtLogin: Boolean(value.launchAtLogin),
     provider: value.provider === "claude" ? "claude" : "codex",
     codexExecutable:
       typeof value.codexExecutable === "string" && value.codexExecutable.trim()
@@ -165,6 +167,13 @@ const previewApi: OolongApi = {
       history: store.history.slice(0, nextSettings.historyLimit)
     });
     return nextSettings;
+  },
+  async checkForUpdates() {
+    return null;
+  },
+  async openUpdateDownload() {
+    window.open(latestReleaseUrl, "_blank", "noopener,noreferrer");
+    return true;
   },
   async getHistory() {
     return readPreviewStore().history;
