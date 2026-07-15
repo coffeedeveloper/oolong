@@ -1,5 +1,45 @@
 # Release Notes
 
+## v0.6.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.6.0
+
+oolong v0.6.0 adds macOS startup controls and lightweight update notifications while improving the reliability, security, and maintainability of the Electron runtime. It also refreshes the built-in Codex model presets.
+
+### Downloads
+
+- `oolong-0.6.0-arm64.dmg`
+- `oolong-0.6.0-arm64-mac.zip`
+
+### Included Features
+
+- Added a General setting for launching oolong automatically when the user signs in to macOS.
+- Added a startup check against GitHub Releases with an in-app notice when a newer version is available.
+- Added a safe action for opening the matching GitHub Release page to download an update manually.
+- Added Codex presets for GPT-5.6 Sol, GPT-5.6 Terra, and GPT-5.6 Luna, and removed the GPT-5.4 nano preset.
+
+### Architecture And Maintenance
+
+- Split settings, storage, provider execution, external-link handling, and update checks into focused Electron modules.
+- Moved renderer and Electron setting defaults into a shared serializable source to keep both processes aligned.
+- Added Node test coverage for Electron core modules and included it in the documented validation workflow.
+- Updated contributor and user documentation for launch-at-login, update checks, runtime modules, and release safeguards.
+
+### Fixes And Reliability
+
+- Serialized and atomically replaced JSON store writes to prevent stale concurrent updates and partially written settings or history files.
+- Restricted renderer navigation and new-window behavior while routing approved HTTP and HTTPS destinations through the system browser.
+- Enabled Electron renderer sandboxing and tightened external URL validation.
+- Kept macOS Service registration from blocking application startup and preserved bounded provider process output and timeout handling.
+
+### Notes
+
+- Update notifications require access to GitHub's public Releases API. Updates are downloaded and installed manually from the release page.
+- Launch at login is available in the packaged macOS application.
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.5.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.5.0
