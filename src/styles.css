@@ -261,9 +261,34 @@ button {
   }
 }
 
+.query-tool-notice {
+  position: fixed;
+  z-index: 60;
+  bottom: 20px;
+  left: 50%;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  background: #25282d;
+  box-shadow:
+    0 12px 30px rgba(22, 24, 29, 0.18),
+    0 2px 8px rgba(22, 24, 29, 0.12);
+  color: #fffefa;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  text-align: center;
+  animation: tooltip-fade 0.12s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-tooltip,
-  .selection-context-menu {
+  .selection-context-menu,
+  .query-tool-notice {
     animation: none;
   }
 }

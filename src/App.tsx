@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent, KeyboardEvent } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Languages } from "lucide-react";
 import { api } from "./api";
 import { Composer } from "./components/main/Composer";
 import { HistoryDetail } from "./components/main/HistoryDetail";
@@ -70,9 +70,21 @@ function App() {
         icon: BookOpen,
         onSelect: (selectedText: string) =>
           api.openQueryTool({ toolId: "dictionary", text: selectedText })
+      },
+      {
+        id: "youdao",
+        label: text.queryTools.youdaoSearch,
+        icon: Languages,
+        failureMessage: text.queryTools.youdaoUnavailable,
+        onSelect: (selectedText: string) =>
+          api.openQueryTool({ toolId: "youdao", text: selectedText })
       }
     ],
-    [text.queryTools.dictionarySearch]
+    [
+      text.queryTools.dictionarySearch,
+      text.queryTools.youdaoSearch,
+      text.queryTools.youdaoUnavailable
+    ]
   );
 
   const focusInput = useCallback(() => {

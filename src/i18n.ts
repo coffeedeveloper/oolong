@@ -111,7 +111,10 @@ export const translations = {
     },
     queryTools: {
       menuLabel: "Selection tools",
-      dictionarySearch: "Dictionary: search"
+      dictionarySearch: "Dictionary: search",
+      youdaoSearch: "Youdao: search",
+      youdaoUnavailable:
+        "Unable to query with Youdao Translation. Confirm it is installed and its macOS service is available."
     },
     loading: {
       running: "Running {provider}... elapsed {elapsed}.",
@@ -222,7 +225,9 @@ export const translations = {
     },
     queryTools: {
       menuLabel: "选区查询工具",
-      dictionarySearch: "Dictionary: search"
+      dictionarySearch: "Dictionary: search",
+      youdaoSearch: "Youdao: search",
+      youdaoUnavailable: "无法调用网易有道翻译，请确认已安装应用且系统服务可用。"
     },
     loading: {
       running: "{provider} 正在运行...已耗时 {elapsed}。",
