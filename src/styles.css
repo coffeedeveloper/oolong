@@ -203,8 +203,67 @@ button {
   }
 }
 
+.selection-context-menu {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  min-width: 190px;
+  max-width: calc(100vw - 16px);
+  border: 1px solid #cfc6ba;
+  border-radius: 8px;
+  background: #fffefa;
+  box-shadow:
+    0 14px 36px rgba(30, 28, 24, 0.2),
+    0 2px 8px rgba(30, 28, 24, 0.1);
+  padding: 5px;
+  user-select: none;
+  animation: context-menu-in 0.1s ease-out;
+}
+
+.selection-context-menu-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  border-radius: 6px;
+  outline: 0;
+  background: transparent;
+  color: #25272c;
+  cursor: default;
+  overflow-wrap: anywhere;
+  padding: 6px 9px;
+  text-align: left;
+}
+
+.selection-context-menu-item svg {
+  color: #a25f2b;
+}
+
+.selection-context-menu-item:hover,
+.selection-context-menu-item:focus-visible {
+  background: #f0ebe4;
+  color: #17191d;
+}
+
+@keyframes context-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+    transform-origin: top left;
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+    transform-origin: top left;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .app-tooltip {
+  .app-tooltip,
+  .selection-context-menu {
     animation: none;
   }
 }

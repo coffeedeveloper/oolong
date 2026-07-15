@@ -195,6 +195,22 @@ const previewApi: OolongApi = {
     await navigator.clipboard?.writeText(text);
     return true;
   },
+  async openQueryTool(request) {
+    if (
+      request.toolId !== "dictionary" ||
+      !request.text.trim() ||
+      request.text.trim().length > 500
+    ) {
+      return false;
+    }
+
+    window.open(
+      `dict://${encodeURIComponent(request.text.trim())}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    return true;
+  },
   onFocusInput() {
     return () => undefined;
   },
