@@ -1,5 +1,44 @@
 # Release Notes
 
+## v0.5.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.5.0
+
+oolong v0.5.0 adds fast, local word lookup directly from selected text. It introduces a keyboard-accessible context menu that can open macOS Dictionary or query 网易有道翻译 while keeping the integration layer ready for more lookup tools.
+
+### Downloads
+
+- `oolong-0.5.0-arm64.dmg`
+- `oolong-0.5.0-arm64-mac.zip`
+
+### Included Features
+
+- Added a custom context menu for selected text that matches the existing oolong interface.
+- Added `Dictionary: search` for opening selected words in the built-in macOS Dictionary app.
+- Added `Youdao: search` for sending selected words to 网易有道翻译 through its registered macOS text service.
+- Added keyboard navigation, viewport-aware positioning, focus restoration, and dismissal behavior to the selection menu.
+- Added localized failure notices when an external query tool is unavailable.
+
+### Architecture And Maintenance
+
+- Added typed query-tool identifiers and a shared renderer-to-Electron API contract.
+- Registered query tools through handler maps so additional lookup providers can be added without changing the menu component.
+- Passed Youdao query text through a private service pasteboard without replacing the user's general clipboard contents.
+- Added timeout and bounded-output handling around macOS service execution.
+
+### Fixes And Reliability
+
+- Replaced the legacy Youdao deep link, which opened current Youdao clients without carrying the query text, with the supported macOS service integration.
+- Simplified shortcut tooltips and kept tooltip content inside the visible viewport.
+- Prevented query-tool errors from leaving the selection menu open or failing without user feedback.
+
+### Notes
+
+- 网易有道翻译 must be installed for the Youdao query tool to work.
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.4.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.4.0
