@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("oolong", {
   deleteHistoryEntry: (id) => ipcRenderer.invoke("history:delete", id),
   runAction: (request) => ipcRenderer.invoke("action:run", request),
   copyText: (text) => ipcRenderer.invoke("clipboard:copy", text),
+  openQueryTool: (request) => ipcRenderer.invoke("query-tool:open", request),
   onFocusInput: (callback) => {
     const listener = () => callback();
     ipcRenderer.on("focus-input", listener);

@@ -109,6 +109,10 @@ export const translations = {
       copied: "Copied",
       emptyResult: "Your result will appear here."
     },
+    queryTools: {
+      menuLabel: "Selection tools",
+      dictionarySearch: "Dictionary: search"
+    },
     loading: {
       running: "Running {provider}... elapsed {elapsed}.",
       slow:
@@ -215,6 +219,10 @@ export const translations = {
       copy: "复制",
       copied: "已复制",
       emptyResult: "处理结果会显示在这里。"
+    },
+    queryTools: {
+      menuLabel: "选区查询工具",
+      dictionarySearch: "Dictionary: search"
     },
     loading: {
       running: "{provider} 正在运行...已耗时 {elapsed}。",

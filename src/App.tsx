@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent, KeyboardEvent } from "react";
+import { BookOpen } from "lucide-react";
 import { api } from "./api";
 import { Composer } from "./components/main/Composer";
 import { HistoryDetail } from "./components/main/HistoryDetail";
@@ -8,6 +9,7 @@ import { Titlebar } from "./components/main/Titlebar";
 import { HistoryList } from "./components/history/HistoryList";
 import { SidebarResizer } from "./components/history/SidebarResizer";
 import { SettingsModal } from "./components/settings/SettingsModal";
+import { SelectionContextMenu } from "./components/ui/SelectionContextMenu";
 import { TooltipOverlay } from "./components/ui/Tooltip";
 import { defaultContexts, fallbackSettings } from "./config/defaults";
 import { submitShortcutLabel } from "./config/ui";
@@ -60,6 +62,18 @@ function App() {
   const sidebarToggleTitle = shortcutTitle(sidebarToggleLabel, text.history.toggleSidebarShortcut);
   const submitButtonLabel = loading ? text.main.working : text.main.submit;
   const submitButtonTitle = shortcutTitle(submitButtonLabel, submitShortcutLabel);
+  const queryToolActions = useMemo(
+    () => [
+      {
+        id: "dictionary",
+        label: text.queryTools.dictionarySearch,
+        icon: BookOpen,
+        onSelect: (selectedText: string) =>
+          api.openQueryTool({ toolId: "dictionary", text: selectedText })
+      }
+    ],
+    [text.queryTools.dictionarySearch]
+  );
 
   const focusInput = useCallback(() => {
     requestAnimationFrame(() => textAreaRef.current?.focus());
@@ -353,6 +367,7 @@ function App() {
       ) : null}
 
       <TooltipOverlay tooltip={tooltip} />
+      <SelectionContextMenu actions={queryToolActions} menuLabel={text.queryTools.menuLabel} />
     </div>
   );
 }

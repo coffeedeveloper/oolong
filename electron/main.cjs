@@ -1,4 +1,4 @@
-const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu } = require("electron");
+const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, shell } = require("electron");
 const path = require("node:path");
 const { constants: fsConstants } = require("node:fs");
 const fs = require("node:fs/promises");
@@ -1090,6 +1090,28 @@ ipcMain.handle("history:delete", async (_, id) => {
 ipcMain.handle("clipboard:copy", async (_, text) => {
   clipboard.writeText(String(text ?? ""));
   return true;
+});
+
+const queryToolHandlers = new Map([
+  [
+    "dictionary",
+    async (text) => {
+      await shell.openExternal(`dict://${encodeURIComponent(text)}`);
+      return true;
+    }
+  ]
+]);
+
+ipcMain.handle("query-tool:open", async (_, request) => {
+  const toolId = String(request?.toolId ?? "").trim();
+  const text = String(request?.text ?? "").trim();
+  const handler = queryToolHandlers.get(toolId);
+
+  if (!handler || !text || text.length > 500) {
+    return false;
+  }
+
+  return handler(text);
 });
 
 ipcMain.handle("action:run", async (_, request) => {

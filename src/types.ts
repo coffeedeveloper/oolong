@@ -53,6 +53,13 @@ export interface ClipboardQueryRequest {
   input: string;
 }
 
+export type QueryToolId = "dictionary";
+
+export interface QueryToolRequest {
+  toolId: QueryToolId;
+  text: string;
+}
+
 export interface OolongApi {
   getSettings: () => Promise<Settings>;
   saveSettings: (settings: Settings) => Promise<Settings>;
@@ -61,6 +68,7 @@ export interface OolongApi {
   deleteHistoryEntry: (id: string) => Promise<HistoryEntry[]>;
   runAction: (request: RunRequest) => Promise<HistoryEntry>;
   copyText: (text: string) => Promise<boolean>;
+  openQueryTool: (request: QueryToolRequest) => Promise<boolean>;
   onFocusInput: (callback: () => void) => () => void;
   onOpenSettings: (callback: () => void) => () => void;
   onServiceInput: (callback: (request: ServiceInputRequest) => void) => () => void;
