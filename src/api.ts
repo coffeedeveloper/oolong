@@ -1,4 +1,11 @@
-import type { HistoryEntry, OolongApi, PromptContext, RunRequest, Settings } from "./types";
+import type {
+  HistoryEntry,
+  OolongApi,
+  PromptContext,
+  QueryToolId,
+  RunRequest,
+  Settings
+} from "./types";
 import { defaultContexts, fallbackSettings } from "./config/defaults";
 import { contextDisplayLabel, getUiText, normalizeUiLanguage } from "./i18n";
 
@@ -10,6 +17,16 @@ interface PreviewStore {
 }
 
 const allowedCodexReasoningEfforts = new Set(["low", "medium", "high", "xhigh"]);
+const previewQueryToolHandlers = new Map<QueryToolId, (text: string) => boolean>([
+  [
+    "dictionary",
+    (text) => {
+      window.open(`dict://${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      return true;
+    }
+  ],
+  ["youdao", () => false]
+]);
 
 function normalizeContexts(value: unknown): PromptContext[] {
   if (!Array.isArray(value) || value.length === 0) {
@@ -196,20 +213,14 @@ const previewApi: OolongApi = {
     return true;
   },
   async openQueryTool(request) {
-    if (
-      request.toolId !== "dictionary" ||
-      !request.text.trim() ||
-      request.text.trim().length > 500
-    ) {
+    const text = request.text.trim();
+    const handler = previewQueryToolHandlers.get(request.toolId);
+
+    if (!handler || !text || text.length > 500) {
       return false;
     }
 
-    window.open(
-      `dict://${encodeURIComponent(request.text.trim())}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-    return true;
+    return handler(text);
   },
   onFocusInput() {
     return () => undefined;

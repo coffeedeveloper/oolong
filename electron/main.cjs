@@ -1092,6 +1092,79 @@ ipcMain.handle("clipboard:copy", async (_, text) => {
   return true;
 });
 
+const macTextServiceScript = `
+ObjC.import("AppKit");
+
+function run(argv) {
+  const serviceName = argv[0];
+  const text = argv[1];
+  const pasteboard = $.NSPasteboard.pasteboardWithUniqueName;
+  pasteboard.clearContents;
+
+  if (!pasteboard.setStringForType($(text), $.NSPasteboardTypeString)) {
+    throw new Error("Could not write the query text to the service pasteboard.");
+  }
+
+  return Boolean($.NSPerformService($(serviceName), pasteboard));
+}
+`;
+
+function performMacTextService(serviceName, text) {
+  if (process.platform !== "darwin") {
+    return Promise.resolve(false);
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      "/usr/bin/osascript",
+      ["-l", "JavaScript", "-e", macTextServiceScript, "--", serviceName, text],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      }
+    );
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    let timeout = null;
+
+    const finish = (callback) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      callback();
+    };
+
+    child.stdout.on("data", (chunk) => {
+      stdout = `${stdout}${chunk}`.slice(-8192);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = `${stderr}${chunk}`.slice(-8192);
+    });
+    child.on("error", (error) => finish(() => reject(error)));
+    child.on("close", (code) => {
+      finish(() => {
+        if (code !== 0) {
+          reject(new Error(stderr.trim() || `macOS service exited with code ${code}.`));
+          return;
+        }
+
+        resolve(stdout.trim() === "true");
+      });
+    });
+
+    timeout = setTimeout(() => {
+      child.kill();
+      finish(() => reject(new Error("macOS service timed out.")));
+    }, 5000);
+  });
+}
+
 const queryToolHandlers = new Map([
   [
     "dictionary",
@@ -1099,6 +1172,10 @@ const queryToolHandlers = new Map([
       await shell.openExternal(`dict://${encodeURIComponent(text)}`);
       return true;
     }
+  ],
+  [
+    "youdao",
+    (text) => performMacTextService("有道翻译 \u2022 查询选中内容", text)
   ]
 ]);
 

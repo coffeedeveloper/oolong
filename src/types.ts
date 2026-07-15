@@ -53,7 +53,7 @@ export interface ClipboardQueryRequest {
   input: string;
 }
 
-export type QueryToolId = "dictionary";
+export type QueryToolId = "dictionary" | "youdao";
 
 export interface QueryToolRequest {
   toolId: QueryToolId;

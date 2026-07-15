@@ -15,14 +15,17 @@ export interface SelectionContextMenuAction {
   id: string;
   label: string;
   icon: LucideIcon;
+  failureMessage?: string;
   onSelect: (selectedText: string) => unknown | Promise<unknown>;
 }
 
 async function runAction(action: SelectionContextMenuAction, selectedText: string) {
   try {
-    await action.onSelect(selectedText);
+    const result = await action.onSelect(selectedText);
+    return result === false ? action.failureMessage ?? null : null;
   } catch (error) {
     console.error(`Failed to open query tool ${action.id}:`, error);
+    return action.failureMessage ?? null;
   }
 }
 
@@ -48,6 +51,7 @@ export function SelectionContextMenu({
   menuLabel: string;
 }) {
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
@@ -167,38 +171,57 @@ export function SelectionContextMenu({
     };
   }, [menu]);
 
-  if (!menu) {
+  useEffect(() => {
+    if (!notice) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setNotice(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  if (!menu && !notice) {
     return null;
   }
 
   return (
-    <div
-      ref={menuRef}
-      className="selection-context-menu"
-      role="menu"
-      aria-label={menuLabel}
-      style={{ left: menu.left, top: menu.top }}
-    >
-      {actions.map((action) => {
-        const Icon = action.icon;
+    <>
+      {menu ? (
+        <div
+          ref={menuRef}
+          className="selection-context-menu"
+          role="menu"
+          aria-label={menuLabel}
+          style={{ left: menu.left, top: menu.top }}
+        >
+          {actions.map((action) => {
+            const Icon = action.icon;
 
-        return (
-          <button
-            key={action.id}
-            className="selection-context-menu-item"
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const selectedText = menu.selectedText;
-              setMenu(null);
-              void runAction(action, selectedText);
-            }}
-          >
-            <Icon size={16} aria-hidden="true" />
-            <span>{action.label}</span>
-          </button>
-        );
-      })}
-    </div>
+            return (
+              <button
+                key={action.id}
+                className="selection-context-menu-item"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const selectedText = menu.selectedText;
+                  setMenu(null);
+                  void runAction(action, selectedText).then(setNotice);
+                }}
+              >
+                <Icon size={16} aria-hidden="true" />
+                <span>{action.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {notice ? (
+        <div className="query-tool-notice" role="status">
+          {notice}
+        </div>
+      ) : null}
+    </>
   );
 }
