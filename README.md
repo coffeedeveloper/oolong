@@ -130,6 +130,7 @@ pnpm dev
 Required validation:
 
 ```bash
+pnpm test
 pnpm lint
 pnpm build
 ```

@@ -70,6 +70,7 @@ export interface OolongApi {
   saveSettings: (settings: Settings) => Promise<Settings>;
   checkForUpdates: () => Promise<AvailableUpdate | null>;
   openUpdateDownload: () => Promise<boolean>;
+  openExternalLink: (url: string) => Promise<boolean>;
   getHistory: () => Promise<HistoryEntry[]>;
   clearHistory: () => Promise<HistoryEntry[]>;
   deleteHistoryEntry: (id: string) => Promise<HistoryEntry[]>;

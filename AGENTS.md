@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a macOS Electron app built with React, Vite, TypeScript, and pnpm. UI source lives in `src/`: `App.tsx` is the main interface, `api.ts` is the browser-preview API shim, `i18n.ts` holds localized text, `types.ts` defines shared types, and `styles.css` contains styling. Electron runtime code lives in `electron/`; `main.cjs` owns windows, IPC, settings, shortcuts, and provider execution, while `preload.cjs` exposes the renderer API. Tooling is in `scripts/`, icons in `assets/`, docs images in `docs/images/`, and packaged output in `release/`.
+This is a macOS Electron app built with React, Vite, TypeScript, and pnpm. UI source lives in `src/`: `App.tsx` is the main interface, `api.ts` is the browser-preview API shim, `i18n.ts` holds localized text, `types.ts` defines shared types, and `styles.css` contains styling. Electron runtime code lives in `electron/`; `main.cjs` owns application lifecycle and IPC coordination, `preload.cjs` exposes the renderer API, and focused CommonJS modules own settings, storage, provider execution, external links, and update checks. Shared serializable defaults live in `shared/`, and Node tests live in `tests/`. Tooling is in `scripts/`, icons in `assets/`, docs images in `docs/images/`, and packaged output in `release/`.
 
 ## Build, Test, and Development Commands
 
@@ -11,6 +11,7 @@ Use pnpm, matching `packageManager` in `package.json`.
 ```bash
 pnpm install    # install dependencies from pnpm-lock.yaml
 pnpm dev        # start Vite and launch Electron
+pnpm test       # run Node tests for Electron core modules
 pnpm build      # type-check and build the renderer
 pnpm lint       # run TypeScript checks without emitting files
 pnpm package    # build and create macOS dmg/zip artifacts
@@ -24,7 +25,7 @@ Use TypeScript for renderer code and CommonJS for Electron files. Follow the cur
 
 ## Testing Guidelines
 
-There is no dedicated test runner yet. Treat `pnpm lint` and `pnpm build` as required validation. For UI changes, run `pnpm dev` and manually verify input submission, context switching, copy/history behavior, settings persistence, and provider status. For Electron changes, check IPC, global shortcuts, CLI timeout/error paths, and packaging impact.
+Use the Node test runner through `pnpm test` for Electron core modules. Treat `pnpm test`, `pnpm lint`, and `pnpm build` as required validation. For UI changes, run `pnpm dev` and manually verify input submission, context switching, copy/history behavior, settings persistence, external links, and provider status. For Electron changes, check IPC, global shortcuts, CLI timeout/error paths, and packaging impact.
 
 ## Commit, Branch & Pull Request Guidelines
 
@@ -57,6 +58,7 @@ Before pushing code, run the checks appropriate to the change:
 
 ```bash
 pnpm lint
+pnpm test
 pnpm build
 git diff --check
 ```
@@ -117,6 +119,7 @@ Validate the exact release contents before committing:
 
 ```bash
 pnpm lint
+pnpm test
 node --check electron/main.cjs
 git diff --check
 pnpm package
