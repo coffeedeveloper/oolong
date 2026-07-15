@@ -460,6 +460,75 @@ button {
   padding: 24px clamp(16px, 3vw, 32px);
 }
 
+.update-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 18px;
+  border: 1px solid #d7c7b5;
+  border-radius: 8px;
+  background: #fff8ed;
+  color: #24262b;
+  padding: 10px 12px;
+}
+
+.update-notice-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.update-notice-copy strong {
+  font-size: 13px;
+}
+
+.update-notice-copy span {
+  color: #6a6258;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.update-notice-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.update-download-button,
+.update-dismiss-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c6b39f;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3d3a35;
+  cursor: pointer;
+  min-height: 30px;
+}
+
+.update-download-button {
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.update-dismiss-button {
+  width: 30px;
+  padding: 0;
+}
+
+.update-download-button:hover,
+.update-dismiss-button:hover {
+  border-color: #a68b70;
+  background: #f0ebe4;
+  color: #17191d;
+}
+
 .composer {
   display: grid;
   gap: 12px;

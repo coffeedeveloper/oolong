@@ -10,6 +10,7 @@ import { defaultContexts, fallbackSettings } from "./config/defaults";
 import { contextDisplayLabel, getUiText, normalizeUiLanguage } from "./i18n";
 
 const storageKey = "oolong-preview-store";
+const latestReleaseUrl = "https://github.com/coffeedeveloper/oolong/releases/latest";
 
 interface PreviewStore {
   settings: Settings;
@@ -28,9 +29,17 @@ const previewQueryToolHandlers = new Map<QueryToolId, (text: string) => boolean>
   ["youdao", () => false]
 ]);
 
-function normalizeContexts(value: unknown): PromptContext[] {
+function appendLegacySystemPrompt(prompt: string, systemPrompt: unknown) {
+  const legacyPrompt = typeof systemPrompt === "string" ? systemPrompt.trim() : "";
+  return legacyPrompt ? `${prompt}\n\nAdditional context from the user:\n${legacyPrompt}` : prompt;
+}
+
+function normalizeContexts(value: unknown, legacySystemPrompt?: unknown): PromptContext[] {
   if (!Array.isArray(value) || value.length === 0) {
-    return defaultContexts;
+    return defaultContexts.map((context) => ({
+      ...context,
+      prompt: appendLegacySystemPrompt(context.prompt, legacySystemPrompt)
+    }));
   }
 
   const seenIds = new Set<string>();
@@ -68,10 +77,20 @@ function normalizeContexts(value: unknown): PromptContext[] {
 }
 
 function normalizeSettings(value: Partial<Settings> = {}): Settings {
+  value = value && typeof value === "object" ? value : {};
+  const legacyValue = value as Partial<Settings> & { systemPrompt?: unknown };
+  const historyLimit = Number.isFinite(Number(value.historyLimit))
+    ? Math.min(500, Math.max(1, Number(value.historyLimit)))
+    : fallbackSettings.historyLimit;
+  const providerTimeoutSeconds = Number.isFinite(Number(value.providerTimeoutSeconds))
+    ? Math.min(600, Math.max(10, Number(value.providerTimeoutSeconds)))
+    : fallbackSettings.providerTimeoutSeconds;
+
   return {
     ...fallbackSettings,
     ...value,
     uiLanguage: normalizeUiLanguage(value.uiLanguage),
+    launchAtLogin: Boolean(value.launchAtLogin),
     provider: value.provider === "claude" ? "claude" : "codex",
     codexExecutable:
       typeof value.codexExecutable === "string" && value.codexExecutable.trim()
@@ -97,15 +116,12 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
       typeof value.clipboardShortcut === "string" && value.clipboardShortcut.trim()
         ? value.clipboardShortcut.trim()
         : fallbackSettings.clipboardShortcut,
-    historyLimit: Math.min(500, Math.max(1, Number(value.historyLimit) || 100)),
-    providerTimeoutSeconds: Math.min(
-      600,
-      Math.max(10, Number(value.providerTimeoutSeconds) || 120)
-    ),
+    historyLimit,
+    providerTimeoutSeconds,
     proxyEnabled: Boolean(value.proxyEnabled),
     httpProxy: typeof value.httpProxy === "string" ? value.httpProxy.trim() : fallbackSettings.httpProxy,
     allProxy: typeof value.allProxy === "string" ? value.allProxy.trim() : fallbackSettings.allProxy,
-    contexts: normalizeContexts(value.contexts)
+    contexts: normalizeContexts(value.contexts, legacyValue.systemPrompt)
   };
 }
 
@@ -165,6 +181,26 @@ const previewApi: OolongApi = {
       history: store.history.slice(0, nextSettings.historyLimit)
     });
     return nextSettings;
+  },
+  async checkForUpdates() {
+    return null;
+  },
+  async openUpdateDownload() {
+    window.open(latestReleaseUrl, "_blank", "noopener,noreferrer");
+    return true;
+  },
+  async openExternalLink(value) {
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return false;
+      }
+
+      window.open(url.toString(), "_blank", "noopener,noreferrer");
+      return true;
+    } catch {
+      return false;
+    }
   },
   async getHistory() {
     return readPreviewStore().history;

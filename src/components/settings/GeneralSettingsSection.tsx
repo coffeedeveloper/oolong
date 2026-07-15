@@ -20,6 +20,17 @@ export function GeneralSettingsSection({
         </div>
       </div>
 
+      <label className="checkbox-field">
+        <input
+          type="checkbox"
+          checked={draft.launchAtLogin}
+          onChange={(event) =>
+            setDraft((current) => ({ ...current, launchAtLogin: event.target.checked }))
+          }
+        />
+        <span>{text.general.launchAtLogin}</span>
+      </label>
+
       <div className="settings-grid">
         <label className="field">
           <span>{text.general.language}</span>

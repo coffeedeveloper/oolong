@@ -9,6 +9,7 @@ export interface PromptContext {
 
 export interface Settings {
   uiLanguage: UiLanguage;
+  launchAtLogin: boolean;
   provider: Provider;
   codexExecutable: string;
   codexModel: string;
@@ -60,9 +61,16 @@ export interface QueryToolRequest {
   text: string;
 }
 
+export interface AvailableUpdate {
+  version: string;
+}
+
 export interface OolongApi {
   getSettings: () => Promise<Settings>;
   saveSettings: (settings: Settings) => Promise<Settings>;
+  checkForUpdates: () => Promise<AvailableUpdate | null>;
+  openUpdateDownload: () => Promise<boolean>;
+  openExternalLink: (url: string) => Promise<boolean>;
   getHistory: () => Promise<HistoryEntry[]>;
   clearHistory: () => Promise<HistoryEntry[]>;
   deleteHistoryEntry: (id: string) => Promise<HistoryEntry[]>;

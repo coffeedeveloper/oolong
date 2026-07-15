@@ -1,0 +1,30 @@
+{
+  "uiLanguage": "en",
+  "launchAtLogin": false,
+  "provider": "codex",
+  "codexExecutable": "codex",
+  "codexModel": "",
+  "codexReasoningEffort": "low",
+  "codexProfile": "",
+  "claudeExecutable": "claude",
+  "claudeModel": "",
+  "globalShortcut": "CommandOrControl+Shift+O",
+  "clipboardShortcut": "CommandOrControl+Alt+O",
+  "historyLimit": 100,
+  "providerTimeoutSeconds": 120,
+  "proxyEnabled": false,
+  "httpProxy": "http://127.0.0.1:7890",
+  "allProxy": "socks5://127.0.0.1:7890",
+  "contexts": [
+    {
+      "id": "translate",
+      "label": "translate",
+      "prompt": "You are oolong, a precise Chinese-English translation engine.\nIf the user text is Chinese, translate it into fluent English.\nIf the user text is English, translate it into accurate, natural Chinese.\nPreserve meaning, names, numbers, code, markdown, and line breaks where appropriate.\nReturn only the translated text. Do not explain your translation."
+    },
+    {
+      "id": "optimize",
+      "label": "optimize",
+      "prompt": "You are oolong, a precise English writing editor.\nRewrite the user's English text so it sounds natural, idiomatic, and native.\nPreserve meaning, names, numbers, code, markdown, and line breaks where appropriate.\nReturn only the optimized text. Do not explain your changes."
+    }
+  ]
+}

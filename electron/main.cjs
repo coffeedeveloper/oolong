@@ -1,8 +1,21 @@
-const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, shell } = require("electron");
+const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, net, shell } = require("electron");
 const path = require("node:path");
-const { constants: fsConstants } = require("node:fs");
 const fs = require("node:fs/promises");
 const { spawn } = require("node:child_process");
+const { normalizeExternalUrl } = require("./external-links.cjs");
+const {
+  createProviderRunner,
+  historyPreview,
+  makePrompt
+} = require("./provider-runner.cjs");
+const {
+  defaultSettings,
+  normalizeSettings,
+  normalizeStore,
+  normalizeUiLanguage
+} = require("./settings.cjs");
+const { createJsonStore } = require("./store.cjs");
+const { createUpdateChecker, latestReleaseUrl } = require("./update-check.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 const serviceWorkflowName = "oolong.translate content";
@@ -10,53 +23,8 @@ const serviceWorkflowFileName = `${serviceWorkflowName}.workflow`;
 const serviceContextId = "translate";
 const pendingServiceUrls = [];
 
-const defaultContexts = [
-  {
-    id: "translate",
-    label: "translate",
-    prompt: [
-      "You are oolong, a precise Chinese-English translation engine.",
-      "If the user text is Chinese, translate it into fluent English.",
-      "If the user text is English, translate it into accurate, natural Chinese.",
-      "Preserve meaning, names, numbers, code, markdown, and line breaks where appropriate.",
-      "Return only the translated text. Do not explain your translation."
-    ].join("\n")
-  },
-  {
-    id: "optimize",
-    label: "optimize",
-    prompt: [
-      "You are oolong, a precise English writing editor.",
-      "Rewrite the user's English text so it sounds natural, idiomatic, and native.",
-      "Preserve meaning, names, numbers, code, markdown, and line breaks where appropriate.",
-      "Return only the optimized text. Do not explain your changes."
-    ].join("\n")
-  }
-];
-
-const defaultSettings = {
-  uiLanguage: "en",
-  provider: "codex",
-  codexExecutable: "codex",
-  codexModel: "",
-  codexReasoningEffort: "low",
-  codexProfile: "",
-  claudeExecutable: "claude",
-  claudeModel: "",
-  globalShortcut: "CommandOrControl+Shift+O",
-  clipboardShortcut: "CommandOrControl+Alt+O",
-  historyLimit: 100,
-  providerTimeoutSeconds: 120,
-  proxyEnabled: false,
-  httpProxy: "http://127.0.0.1:7890",
-  allProxy: "socks5://127.0.0.1:7890",
-  contexts: defaultContexts
-};
-
 let mainWindow = null;
-let storePath = "";
-let userBinPathsCache = null;
-const allowedCodexReasoningEfforts = new Set(["low", "medium", "high", "xhigh"]);
+const updateChecker = createUpdateChecker({ app, net });
 
 const uiMessages = {
   en: {
@@ -84,10 +52,6 @@ const uiMessages = {
   }
 };
 
-function normalizeUiLanguage(value) {
-  return value === "zh" ? "zh" : "en";
-}
-
 function messageText(settings) {
   return uiMessages[normalizeUiLanguage(settings?.uiLanguage)];
 }
@@ -100,145 +64,35 @@ function formatMessage(value, params) {
   );
 }
 
-function appendLegacySystemPrompt(prompt, systemPrompt) {
-  const legacyPrompt = typeof systemPrompt === "string" ? systemPrompt.trim() : "";
-  if (!legacyPrompt) {
-    return prompt;
+const providerRunner = createProviderRunner({ app, formatMessage, messageText });
+
+const appStore = createJsonStore({
+  getFilePath: () => path.join(app.getPath("userData"), "data", "store.json"),
+  normalize: normalizeStore
+});
+
+function syncLoginItemState(settings) {
+  if (process.platform !== "darwin" || !app.isPackaged) {
+    return settings;
   }
 
-  return `${prompt}\n\nAdditional context from the user:\n${legacyPrompt}`;
-}
-
-function normalizeContext(value, index) {
-  const fallback = defaultContexts[index] ?? {
-    id: `context-${index + 1}`,
-    label: `context ${index + 1}`,
-    prompt: "Process the user text according to this context. Return only the result."
-  };
-  const id =
-    typeof value?.id === "string" && value.id.trim() ? value.id.trim() : fallback.id;
-  const label =
-    typeof value?.label === "string" && value.label.trim()
-      ? value.label.trim()
-      : fallback.label;
-  const prompt =
-    typeof value?.prompt === "string" && value.prompt.trim()
-      ? value.prompt.trim()
-      : fallback.prompt;
-
   return {
-    id,
-    label,
-    prompt
+    ...settings,
+    launchAtLogin: app.getLoginItemSettings().openAtLogin
   };
 }
 
-function normalizeContexts(value, legacySystemPrompt) {
-  if (!Array.isArray(value) || value.length === 0) {
-    return defaultContexts.map((context) => ({
-      ...context,
-      prompt: appendLegacySystemPrompt(context.prompt, legacySystemPrompt)
-    }));
+function applyLoginItemSetting(settings) {
+  if (process.platform !== "darwin" || !app.isPackaged) {
+    return settings;
   }
 
-  const seenIds = new Set();
-  const contexts = value
-    .slice(0, 20)
-    .map(normalizeContext)
-    .map((context, index) => {
-      let id = context.id;
-      let suffix = index + 1;
-      while (seenIds.has(id)) {
-        suffix += 1;
-        id = `${context.id}-${suffix}`;
-      }
-      seenIds.add(id);
-      return {
-        ...context,
-        id
-      };
-    });
-
-  return contexts.length > 0 ? contexts : defaultContexts;
-}
-
-function normalizeSettings(value = {}) {
-  const provider = value.provider === "claude" ? "claude" : "codex";
-  const historyLimit = Number.isFinite(Number(value.historyLimit))
-    ? Math.min(500, Math.max(1, Number(value.historyLimit)))
-    : defaultSettings.historyLimit;
-  const providerTimeoutSeconds = Number.isFinite(Number(value.providerTimeoutSeconds))
-    ? Math.min(600, Math.max(10, Number(value.providerTimeoutSeconds)))
-    : defaultSettings.providerTimeoutSeconds;
-
-  return {
-    ...defaultSettings,
-    ...value,
-    uiLanguage: normalizeUiLanguage(value.uiLanguage),
-    provider,
-    codexExecutable:
-      typeof value.codexExecutable === "string" && value.codexExecutable.trim()
-        ? value.codexExecutable.trim()
-        : defaultSettings.codexExecutable,
-    codexModel: typeof value.codexModel === "string" ? value.codexModel.trim() : "",
-    codexReasoningEffort:
-      typeof value.codexReasoningEffort === "string" &&
-      allowedCodexReasoningEfforts.has(value.codexReasoningEffort)
-        ? value.codexReasoningEffort
-        : defaultSettings.codexReasoningEffort,
-    codexProfile: typeof value.codexProfile === "string" ? value.codexProfile.trim() : "",
-    claudeExecutable:
-      typeof value.claudeExecutable === "string" && value.claudeExecutable.trim()
-        ? value.claudeExecutable.trim()
-        : defaultSettings.claudeExecutable,
-    claudeModel: typeof value.claudeModel === "string" ? value.claudeModel.trim() : "",
-    historyLimit,
-    providerTimeoutSeconds,
-    globalShortcut:
-      typeof value.globalShortcut === "string" && value.globalShortcut.trim()
-        ? value.globalShortcut.trim()
-        : defaultSettings.globalShortcut,
-    clipboardShortcut:
-      typeof value.clipboardShortcut === "string" && value.clipboardShortcut.trim()
-        ? value.clipboardShortcut.trim()
-        : defaultSettings.clipboardShortcut,
-    proxyEnabled: Boolean(value.proxyEnabled),
-    httpProxy:
-      typeof value.httpProxy === "string" ? value.httpProxy.trim() : defaultSettings.httpProxy,
-    allProxy: typeof value.allProxy === "string" ? value.allProxy.trim() : defaultSettings.allProxy,
-    contexts: normalizeContexts(value.contexts, value.systemPrompt)
-  };
-}
-
-function normalizeStore(value = {}) {
-  return {
-    settings: normalizeSettings(value.settings),
-    history: Array.isArray(value.history) ? value.history : []
-  };
-}
-
-async function ensureStorePath() {
-  const dir = path.join(app.getPath("userData"), "data");
-  await fs.mkdir(dir, { recursive: true });
-  storePath = path.join(dir, "store.json");
-}
-
-async function readStore() {
-  await ensureStorePath();
-  try {
-    const raw = await fs.readFile(storePath, "utf8");
-    return normalizeStore(JSON.parse(raw));
-  } catch (error) {
-    if (error && error.code !== "ENOENT") {
-      console.warn("Failed to read store:", error);
-    }
-    return normalizeStore();
+  const current = app.getLoginItemSettings();
+  if (current.openAtLogin !== settings.launchAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
   }
-}
 
-async function writeStore(store) {
-  await ensureStorePath();
-  await fs.writeFile(storePath, `${JSON.stringify(normalizeStore(store), null, 2)}\n`, "utf8");
+  return syncLoginItemState(settings);
 }
 
 function xmlEscape(value) {
@@ -532,9 +386,14 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   });
+
+  mainWindow.webContents.on("will-navigate", (event) => {
+    event.preventDefault();
+  });
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
   if (isDev) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -708,295 +567,6 @@ function findContext(settings, contextId) {
   );
 }
 
-function makePrompt({ context, input }) {
-  return `${context.prompt.trim()}\n\nUser text:\n${input}`;
-}
-
-function providerCommand(settings, prompt) {
-  if (settings.provider === "claude") {
-    const args = ["-p"];
-    if (settings.claudeModel) {
-      args.push("--model", settings.claudeModel);
-    }
-    args.push(prompt);
-
-    return {
-      command: settings.claudeExecutable,
-      args,
-      stdin: null
-    };
-  }
-
-  const args = ["exec", "--skip-git-repo-check"];
-  if (settings.codexReasoningEffort) {
-    args.push("-c", `model_reasoning_effort="${settings.codexReasoningEffort}"`);
-  }
-  if (settings.codexModel) {
-    args.push("--model", settings.codexModel);
-  }
-  if (settings.codexProfile) {
-    args.push("--profile", settings.codexProfile);
-  }
-  args.push("--ephemeral", "--color", "never", "-");
-
-  return {
-    command: settings.codexExecutable,
-    args,
-    stdin: prompt
-  };
-}
-
-function applyProxyEnv(env, settings) {
-  if (!settings.proxyEnabled) {
-    return env;
-  }
-
-  const httpProxy = settings.httpProxy.trim();
-  const allProxy = settings.allProxy.trim();
-
-  if (httpProxy) {
-    env.http_proxy = httpProxy;
-    env.https_proxy = httpProxy;
-    env.HTTP_PROXY = httpProxy;
-    env.HTTPS_PROXY = httpProxy;
-  }
-
-  if (allProxy) {
-    env.all_proxy = allProxy;
-    env.ALL_PROXY = allProxy;
-  }
-
-  return env;
-}
-
-function expandHomePath(value, home) {
-  if (value === "~") {
-    return home;
-  }
-  if (value.startsWith("~/")) {
-    return path.join(home, value.slice(2));
-  }
-  return value;
-}
-
-async function listChildBinPaths(root, segments) {
-  try {
-    const entries = await fs.readdir(root, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
-      .map((entry) => path.join(root, entry.name, ...segments));
-  } catch {
-    return [];
-  }
-}
-
-async function discoverUserBinPaths(home) {
-  if (userBinPathsCache) {
-    return userBinPathsCache;
-  }
-
-  const fnmRoot = path.join(home, ".local", "share", "fnm");
-  const fnmAliasBins = await listChildBinPaths(path.join(fnmRoot, "aliases"), ["bin"]);
-  const fnmVersionBins = await listChildBinPaths(path.join(fnmRoot, "node-versions"), [
-    "installation",
-    "bin"
-  ]);
-  const nvmVersionBins = await listChildBinPaths(path.join(home, ".nvm", "versions", "node"), [
-    "bin"
-  ]);
-
-  userBinPathsCache = [
-    ...fnmAliasBins,
-    ...fnmVersionBins.sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
-    ...nvmVersionBins.sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
-    path.join(home, ".volta", "bin"),
-    path.join(home, ".asdf", "shims"),
-    path.join(home, ".nodenv", "shims"),
-    path.join(home, ".bun", "bin"),
-    path.join(home, "Library", "pnpm"),
-    path.join(home, ".npm-global", "bin"),
-    path.join(home, ".yarn", "bin")
-  ];
-
-  return userBinPathsCache;
-}
-
-async function buildEnv(settings) {
-  const home = app.getPath("home");
-  const userBinPaths = await discoverUserBinPaths(home);
-  const pathParts = [
-    process.env.PATH,
-    ...userBinPaths,
-    "/opt/homebrew/bin",
-    "/usr/local/bin",
-    "/usr/bin",
-    "/bin",
-    "/usr/sbin",
-    "/sbin",
-    path.join(home, ".local", "bin"),
-    path.join(home, ".cargo", "bin")
-  ].filter(Boolean);
-
-  const env = {
-    ...process.env,
-    PATH: Array.from(new Set(pathParts.flatMap((entry) => entry.split(":")).filter(Boolean))).join(":")
-  };
-
-  return applyProxyEnv(env, settings);
-}
-
-async function canExecute(filePath) {
-  try {
-    await fs.access(filePath, fsConstants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function shellQuote(value) {
-  return `'${String(value).replace(/'/g, "'\\''")}'`;
-}
-
-async function resolveFromLoginShell(command, env) {
-  return new Promise((resolve) => {
-    const child = spawn("/bin/zsh", ["-lic", `command -v -- ${shellQuote(command)}`], {
-      env,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "ignore"]
-    });
-    let stdout = "";
-    const timeout = setTimeout(() => {
-      child.kill("SIGTERM");
-      resolve("");
-    }, 4000);
-
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    child.on("error", () => {
-      clearTimeout(timeout);
-      resolve("");
-    });
-    child.on("close", async () => {
-      clearTimeout(timeout);
-      const matches = stdout
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      for (const match of matches.reverse()) {
-        if (await canExecute(match)) {
-          resolve(match);
-          return;
-        }
-      }
-
-      resolve("");
-    });
-  });
-}
-
-async function findExecutable(command, env, settings) {
-  const home = app.getPath("home");
-  const expandedCommand = expandHomePath(command, home);
-  const hasPathSeparator = expandedCommand.includes(path.sep);
-  const text = messageText(settings);
-
-  if (hasPathSeparator) {
-    if (await canExecute(expandedCommand)) {
-      return expandedCommand;
-    }
-    throw new Error(formatMessage(text.executableNotFound, { command }));
-  }
-
-  const pathEntries = String(env.PATH || "")
-    .split(path.delimiter)
-    .filter(Boolean);
-  for (const entry of pathEntries) {
-    const candidate = path.join(entry, expandedCommand);
-    if (await canExecute(candidate)) {
-      return candidate;
-    }
-  }
-
-  const shellResolved = await resolveFromLoginShell(expandedCommand, env);
-  if (shellResolved) {
-    return shellResolved;
-  }
-
-  throw new Error(formatMessage(text.executableNotFound, { command }));
-}
-
-async function runCli(settings, prompt) {
-  const { command, args, stdin } = providerCommand(settings, prompt);
-  const timeoutMs = settings.providerTimeoutSeconds * 1000;
-  const env = await buildEnv(settings);
-  const executable = await findExecutable(command, env, settings);
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(executable, args, {
-      env,
-      windowsHide: true,
-      stdio: [stdin ? "pipe" : "ignore", "pipe", "pipe"]
-    });
-
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-      const text = messageText(settings);
-      reject(
-        new Error(
-          formatMessage(text.timeout, {
-            command,
-            seconds: settings.providerTimeoutSeconds
-          })
-        )
-      );
-    }, timeoutMs);
-
-    if (stdin && child.stdin) {
-      child.stdin.on("error", () => undefined);
-      child.stdin.end(stdin);
-    }
-
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      reject(error);
-    });
-
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (timedOut) {
-        return;
-      }
-
-      if (code === 0) {
-        resolve(stdout.trim());
-        return;
-      }
-
-      const detail = stderr.trim() || stdout.trim() || `${command} exited with code ${code}`;
-      reject(new Error(detail));
-    });
-  });
-}
-
-function historyPreview(text) {
-  return text.replace(/\s+/g, " ").trim().slice(0, 140);
-}
-
 function sendServiceInput(request) {
   sendToMainWindow("service-input", request);
 }
@@ -1055,37 +625,55 @@ app.on("open-url", (event, url) => {
 });
 
 ipcMain.handle("settings:get", async () => {
-  const store = await readStore();
-  return store.settings;
+  const store = await appStore.read();
+  return syncLoginItemState(store.settings);
 });
 
 ipcMain.handle("settings:save", async (_, settings) => {
-  const store = await readStore();
-  store.settings = normalizeSettings(settings);
-  await writeStore(store);
-  configureApplicationMenu(store.settings);
-  await registerShortcut(store.settings);
-  return store.settings;
+  const savedSettings = applyLoginItemSetting(normalizeSettings(settings));
+  await appStore.update((store) => {
+    store.settings = savedSettings;
+  });
+  configureApplicationMenu(savedSettings);
+  await registerShortcut(savedSettings);
+  return savedSettings;
+});
+
+ipcMain.handle("updates:check", () => updateChecker.checkForUpdates());
+
+ipcMain.handle("updates:open-download", async () => {
+  await shell.openExternal(latestReleaseUrl);
+  return true;
+});
+
+ipcMain.handle("external-link:open", async (_, value) => {
+  const url = normalizeExternalUrl(value);
+  if (!url) {
+    return false;
+  }
+
+  await shell.openExternal(url);
+  return true;
 });
 
 ipcMain.handle("history:list", async () => {
-  const store = await readStore();
+  const store = await appStore.read();
   return store.history;
 });
 
-ipcMain.handle("history:clear", async () => {
-  const store = await readStore();
-  store.history = [];
-  await writeStore(store);
-  return [];
-});
+ipcMain.handle("history:clear", () =>
+  appStore.update((store) => {
+    store.history = [];
+    return [];
+  })
+);
 
-ipcMain.handle("history:delete", async (_, id) => {
-  const store = await readStore();
-  store.history = store.history.filter((entry) => entry.id !== id);
-  await writeStore(store);
-  return store.history;
-});
+ipcMain.handle("history:delete", (_, id) =>
+  appStore.update((store) => {
+    store.history = store.history.filter((entry) => entry.id !== id);
+    return store.history;
+  })
+);
 
 ipcMain.handle("clipboard:copy", async (_, text) => {
   clipboard.writeText(String(text ?? ""));
@@ -1194,7 +782,7 @@ ipcMain.handle("query-tool:open", async (_, request) => {
 ipcMain.handle("action:run", async (_, request) => {
   const input = String(request?.input ?? "").trim();
   const requestedContextId = String(request?.contextId ?? request?.mode ?? "").trim();
-  const store = await readStore();
+  const store = await appStore.read();
   const settings = normalizeSettings(store.settings);
   const text = messageText(settings);
 
@@ -1208,7 +796,7 @@ ipcMain.handle("action:run", async (_, request) => {
   }
 
   const prompt = makePrompt({ context, input });
-  const output = await runCli(settings, prompt);
+  const output = await providerRunner.runCli(settings, prompt);
   const now = new Date().toISOString();
   const entry = {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1222,17 +810,23 @@ ipcMain.handle("action:run", async (_, request) => {
     createdAt: now
   };
 
-  store.history = [entry, ...store.history].slice(0, settings.historyLimit);
-  await writeStore(store);
+  await appStore.update((latestStore) => {
+    latestStore.history = [entry, ...latestStore.history].slice(
+      0,
+      latestStore.settings.historyLimit
+    );
+  });
   return entry;
 });
 
 app.whenReady().then(async () => {
-  const store = await readStore();
+  const store = await appStore.read();
   registerProtocolClient();
-  await installMacTextService();
   configureApplicationMenu(store.settings);
   createWindow();
+  void installMacTextService().catch((error) => {
+    console.warn("Failed to install macOS text service:", error);
+  });
   await registerShortcut(store.settings);
   for (const url of pendingServiceUrls.splice(0)) {
     void handleServiceUrl(url);

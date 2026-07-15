@@ -28,6 +28,7 @@ oolong provides a native workspace for repeatable text actions: choose a context
 - **macOS Services integration**: send selected text from another application to oolong's `translate` context.
 - **English and Chinese UI**: localize navigation, settings, status messages, and default context labels.
 - **Operational controls**: configure provider timeouts and optional proxy environment variables.
+- **Update notifications**: check GitHub Releases at startup and open the latest download when a newer version is available.
 
 ## Install
 
@@ -88,7 +89,7 @@ The global open and clipboard shortcuts can be changed or cleared from **Setting
 
 | Tab | What it controls |
 | --- | --- |
-| General | UI language, local history limit, provider timeout |
+| General | UI language, launch at login, local history limit, provider timeout |
 | Shortcuts | Global open and clipboard query shortcuts |
 | Provider | Active provider, executable path, model, Codex reasoning effort and profile |
 | Contexts | Main-screen action labels and the prompts sent to the provider |
@@ -112,6 +113,7 @@ oolong opens, places the selected text in the input, and runs the `translate` co
 - Provider prompts are passed to the selected local CLI process. Whether that CLI sends data over the network, and how it handles authentication and retention, is controlled by the provider and your CLI configuration.
 - oolong does not store Codex or Claude account credentials. Authentication remains with the provider CLI.
 - Dictionary and Youdao queries leave oolong and are handled by the corresponding macOS application.
+- Packaged builds query GitHub's public Releases API once at startup to detect newer versions. Downloading an update opens the project's GitHub Release page.
 - Proxy URLs are user-controlled settings and may be stored locally; avoid embedding credentials unless required.
 
 ## Development
@@ -128,6 +130,7 @@ pnpm dev
 Required validation:
 
 ```bash
+pnpm test
 pnpm lint
 pnpm build
 ```

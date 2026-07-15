@@ -11,6 +11,7 @@ import { SidebarResizer } from "./components/history/SidebarResizer";
 import { SettingsModal } from "./components/settings/SettingsModal";
 import { SelectionContextMenu } from "./components/ui/SelectionContextMenu";
 import { TooltipOverlay } from "./components/ui/Tooltip";
+import { UpdateNotice } from "./components/ui/UpdateNotice";
 import { defaultContexts, fallbackSettings } from "./config/defaults";
 import { submitShortcutLabel } from "./config/ui";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
@@ -18,7 +19,7 @@ import { useElapsedTimer } from "./hooks/useElapsedTimer";
 import { useHistorySidebar } from "./hooks/useHistorySidebar";
 import { useTooltip } from "./hooks/useTooltip";
 import { formatText, getUiText, historyDisplayLabel } from "./i18n";
-import type { HistoryEntry, Settings } from "./types";
+import type { AvailableUpdate, HistoryEntry, Settings } from "./types";
 import { providerStatusText } from "./utils/provider";
 import { shortcutTitle } from "./utils/shortcuts";
 
@@ -30,6 +31,7 @@ function App() {
   const [settings, setSettings] = useState<Settings>(fallbackSettings);
   const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [availableUpdate, setAvailableUpdate] = useState<AvailableUpdate | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -120,9 +122,10 @@ function App() {
     let mounted = true;
 
     async function load() {
-      const [loadedSettings, loadedHistory] = await Promise.all([
+      const [loadedSettings, loadedHistory, update] = await Promise.all([
         api.getSettings(),
-        api.getHistory()
+        api.getHistory(),
+        api.checkForUpdates()
       ]);
 
       if (!mounted) {
@@ -131,6 +134,7 @@ function App() {
 
       setSettings(loadedSettings);
       setHistory(loadedHistory);
+      setAvailableUpdate(update);
       setSelectedContextId((current) =>
         loadedSettings.contexts.some((context) => context.id === current)
           ? current
@@ -271,6 +275,13 @@ function App() {
     setCopied(true);
   }
 
+  async function handleOpenUpdateDownload() {
+    const didOpen = await api.openUpdateDownload();
+    if (didOpen) {
+      setAvailableUpdate(null);
+    }
+  }
+
   const outputTitle = useMemo(() => {
     if (selectedEntry) {
       return formatText(text.main.contextResult, {
@@ -323,6 +334,15 @@ function App() {
         ) : null}
 
         <main className="main-pane">
+          {availableUpdate ? (
+            <UpdateNotice
+              version={availableUpdate.version}
+              text={text}
+              onDownload={() => void handleOpenUpdateDownload()}
+              onDismiss={() => setAvailableUpdate(null)}
+            />
+          ) : null}
+
           {selectedEntry ? (
             <HistoryDetail
               entry={selectedEntry}
