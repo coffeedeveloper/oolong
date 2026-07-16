@@ -98,6 +98,22 @@ export function useAppShortcuts({
   }, [settingsOpen, toggleHistoryCollapsed]);
 
   useEffect(() => {
+    function handleHistoryCloseShortcut(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape" || !selectedEntry || settingsOpen || event.defaultPrevented) {
+        return;
+      }
+
+      event.preventDefault();
+      setCopied(false);
+      setSelectedEntry(null);
+      focusInput();
+    }
+
+    window.addEventListener("keydown", handleHistoryCloseShortcut);
+    return () => window.removeEventListener("keydown", handleHistoryCloseShortcut);
+  }, [focusInput, selectedEntry, setCopied, setSelectedEntry, settingsOpen]);
+
+  useEffect(() => {
     function handleHistorySelectionShortcut(event: globalThis.KeyboardEvent) {
       const key = event.key.toLowerCase();
       if (

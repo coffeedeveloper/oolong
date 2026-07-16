@@ -25,7 +25,12 @@ export function HistoryDetail({
           <span className="eyebrow">{historyDisplayLabel(entry, text)}</span>
           <h2>{formatDate(entry.createdAt, language)}</h2>
         </div>
-        <button className="secondary-button" type="button" onClick={onClose}>
+        <button
+          className="secondary-button"
+          type="button"
+          aria-keyshortcuts="Escape"
+          onClick={onClose}
+        >
           {text.main.close}
         </button>
       </div>
