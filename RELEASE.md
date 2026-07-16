@@ -1,5 +1,46 @@
 # Release Notes
 
+## v0.7.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.7.0
+
+oolong v0.7.0 adds a compact macOS menu-bar translator for quick access without opening the main window. It also expands keyboard navigation, keeps popover translations synchronized with history, and fixes a provider PATH error that could prevent actions from running.
+
+### Downloads
+
+- `oolong-0.7.0-arm64.dmg`
+- `oolong-0.7.0-arm64-mac.zip`
+
+### Included Features
+
+- Added a solid monochrome Oolong status-bar icon that adapts to light and dark macOS menu bars.
+- Added a compact popover for translate, optimize, and custom contexts using the existing provider settings and action pipeline.
+- Added icon-only clear, submit, and copy actions with inline results, loading state, and error feedback.
+- Added Command+1 through Command+9 context switching, Command+Enter submission, and Escape dismissal in the popover.
+- Added an Escape shortcut in history details to return to the main input.
+- Added immediate history synchronization so popover translations appear in an open main-window history list without duplicate entries.
+
+### Architecture And Maintenance
+
+- Added a focused Electron menu-bar controller and a dedicated popover renderer while keeping shared contexts, settings, and history in the existing application model.
+- Added preload events for popover activation and history synchronization.
+- Added coverage for menu-bar positioning, display work areas, toggle behavior, application activation, history persistence, and provider PATH construction.
+- Added a menu-bar popover screenshot to the project documentation.
+
+### Fixes And Reliability
+
+- Fixed provider PATH construction calling `.filter()` on a `Set`, which caused `TypeError: (intermediate value).filter is not a function` when running an action.
+- Prevented status-bar clicks from opening the main window; they now toggle only the popover.
+- Positioned the popover closer to the status icon and kept it within the active display's work area.
+- Closed the popover on blur and prevented history load races from losing or duplicating new popover entries.
+
+### Notes
+
+- The status-bar popover is available on macOS.
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.6.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.6.0
