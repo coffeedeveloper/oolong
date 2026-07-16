@@ -1,8 +1,21 @@
-const { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, net, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  clipboard,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeImage,
+  net,
+  screen,
+  shell,
+  Tray
+} = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const { spawn } = require("node:child_process");
 const { normalizeExternalUrl } = require("./external-links.cjs");
+const { createMenuBarController } = require("./menu-bar.cjs");
 const {
   createProviderRunner,
   historyPreview,
@@ -24,6 +37,7 @@ const serviceContextId = "translate";
 const pendingServiceUrls = [];
 
 let mainWindow = null;
+let menuBarController = null;
 const updateChecker = createUpdateChecker({ app, net });
 
 const uiMessages = {
@@ -444,6 +458,25 @@ function sendToMainWindow(channel, payload) {
   deliver();
 }
 
+function sendToExistingMainWindow(channel, payload) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  const deliver = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(channel, payload);
+    }
+  };
+
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", deliver);
+    return;
+  }
+
+  deliver();
+}
+
 function focusMainWindow() {
   sendToMainWindow("focus-input");
 }
@@ -816,6 +849,7 @@ ipcMain.handle("action:run", async (_, request) => {
       latestStore.settings.historyLimit
     );
   });
+  sendToExistingMainWindow("history-entry-created", entry);
   return entry;
 });
 
@@ -824,6 +858,20 @@ app.whenReady().then(async () => {
   registerProtocolClient();
   configureApplicationMenu(store.settings);
   createWindow();
+  if (process.platform === "darwin") {
+    menuBarController = createMenuBarController({
+      BrowserWindow,
+      Tray,
+      nativeImage,
+      screen,
+      isDev,
+      devServerUrl: process.env.VITE_DEV_SERVER_URL,
+      preloadPath: path.join(__dirname, "preload.cjs"),
+      rendererPath: path.join(__dirname, "..", "dist", "index.html"),
+      iconPath: path.join(__dirname, "..", "assets", "status-bar-icon.png")
+    });
+    menuBarController.initialize();
+  }
   void installMacTextService().catch((error) => {
     console.warn("Failed to install macOS text service:", error);
   });
@@ -833,7 +881,11 @@ app.whenReady().then(async () => {
   }
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (menuBarController?.shouldSuppressAppActivation()) {
+      return;
+    }
+
+    if (!mainWindow || mainWindow.isDestroyed()) {
       createWindow();
     } else {
       focusMainWindow();
@@ -843,6 +895,7 @@ app.whenReady().then(async () => {
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  menuBarController?.destroy();
 });
 
 app.on("window-all-closed", () => {

@@ -31,5 +31,15 @@ contextBridge.exposeInMainWorld("oolong", {
     const listener = (_, request) => callback(request);
     ipcRenderer.on("clipboard-query", listener);
     return () => ipcRenderer.removeListener("clipboard-query", listener);
+  },
+  onMenuBarOpen: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on("menu-bar:open", listener);
+    return () => ipcRenderer.removeListener("menu-bar:open", listener);
+  },
+  onHistoryEntryCreated: (callback) => {
+    const listener = (_, entry) => callback(entry);
+    ipcRenderer.on("history-entry-created", listener);
+    return () => ipcRenderer.removeListener("history-entry-created", listener);
   }
 });

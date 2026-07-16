@@ -269,6 +269,12 @@ const previewApi: OolongApi = {
   },
   onClipboardQuery() {
     return () => undefined;
+  },
+  onMenuBarOpen() {
+    return () => undefined;
+  },
+  onHistoryEntryCreated() {
+    return () => undefined;
   }
 };
 
