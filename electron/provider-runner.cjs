@@ -68,6 +68,11 @@ function historyPreview(text) {
   return text.replace(/\s+/g, " ").trim().slice(0, 140);
 }
 
+function mergePathEntries(entries) {
+  const pathEntries = entries.flatMap((entry) => String(entry).split(path.delimiter));
+  return Array.from(new Set(pathEntries.filter(Boolean))).join(path.delimiter);
+}
+
 function createProviderRunner({ app, formatMessage, messageText }) {
   let userBinPathsCache = null;
 
@@ -141,9 +146,7 @@ function createProviderRunner({ app, formatMessage, messageText }) {
 
     const env = {
       ...process.env,
-      PATH: Array.from(new Set(pathParts.flatMap((entry) => entry.split(":"))).filter(Boolean)).join(
-        ":"
-      )
+      PATH: mergePathEntries(pathParts)
     };
 
     return applyProxyEnv(env, settings);
@@ -301,5 +304,6 @@ module.exports = {
   createProviderRunner,
   historyPreview,
   makePrompt,
+  mergePathEntries,
   providerCommand
 };

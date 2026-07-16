@@ -1,9 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const path = require("node:path");
 const {
   applyProxyEnv,
   historyPreview,
   makePrompt,
+  mergePathEntries,
   providerCommand
 } = require("../electron/provider-runner.cjs");
 
@@ -67,6 +69,15 @@ test("applies proxy variables in both common casings", () => {
   assert.equal(env.http_proxy, "http://127.0.0.1:7890");
   assert.equal(env.HTTPS_PROXY, "http://127.0.0.1:7890");
   assert.equal(env.ALL_PROXY, "socks5://127.0.0.1:7890");
+});
+
+test("merges PATH entries without empty or duplicate values", () => {
+  const delimiter = path.delimiter;
+
+  assert.equal(
+    mergePathEntries([`/usr/bin${delimiter}${delimiter}/bin`, "/usr/bin", "/opt/bin"]),
+    ["/usr/bin", "/bin", "/opt/bin"].join(delimiter)
+  );
 });
 
 test("formats prompts and bounded history previews", () => {
