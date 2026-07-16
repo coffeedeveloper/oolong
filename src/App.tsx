@@ -133,7 +133,13 @@ function App() {
       }
 
       setSettings(loadedSettings);
-      setHistory(loadedHistory);
+      setHistory((current) => {
+        const currentIds = new Set(current.map((entry) => entry.id));
+        return [
+          ...current,
+          ...loadedHistory.filter((entry) => !currentIds.has(entry.id))
+        ].slice(0, loadedSettings.historyLimit);
+      });
       setAvailableUpdate(update);
       setSelectedContextId((current) =>
         loadedSettings.contexts.some((context) => context.id === current)
@@ -199,6 +205,19 @@ function App() {
 
     setSelectedContextId(settings.contexts[0]?.id ?? "translate");
   }, [selectedContextId, settings.contexts]);
+
+  useEffect(
+    () =>
+      api.onHistoryEntryCreated((entry) => {
+        setHistory((current) =>
+          [entry, ...current.filter((item) => item.id !== entry.id)].slice(
+            0,
+            settings.historyLimit
+          )
+        );
+      }),
+    [settings.historyLimit]
+  );
 
   useAppShortcuts({
     contexts: settings.contexts,

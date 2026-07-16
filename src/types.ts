@@ -81,6 +81,8 @@ export interface OolongApi {
   onOpenSettings: (callback: () => void) => () => void;
   onServiceInput: (callback: (request: ServiceInputRequest) => void) => () => void;
   onClipboardQuery: (callback: (request: ClipboardQueryRequest) => void) => () => void;
+  onMenuBarOpen: (callback: () => void) => () => void;
+  onHistoryEntryCreated: (callback: (entry: HistoryEntry) => void) => () => void;
 }
 
 declare global {

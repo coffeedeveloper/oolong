@@ -58,6 +58,7 @@
       "shared/settings-defaults.json",
       "assets/icon.png",
       "assets/icon.icns",
+      "assets/status-bar-icon.png",
       "package.json"
     ],
     "mac": {
