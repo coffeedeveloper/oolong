@@ -2,9 +2,14 @@ const defaultSettings = require("../shared/settings-defaults.json");
 const defaultContexts = defaultSettings.contexts;
 
 const allowedCodexReasoningEfforts = new Set(["low", "medium", "high", "xhigh"]);
+const allowedThemes = new Set(["cream", "light", "dark"]);
 
 function normalizeUiLanguage(value) {
   return value === "zh" ? "zh" : "en";
+}
+
+function normalizeTheme(value) {
+  return allowedThemes.has(value) ? value : defaultSettings.theme;
 }
 
 function appendLegacySystemPrompt(prompt, systemPrompt) {
@@ -76,6 +81,7 @@ function normalizeSettings(value = {}) {
     ...defaultSettings,
     ...value,
     uiLanguage: normalizeUiLanguage(value.uiLanguage),
+    theme: normalizeTheme(value.theme),
     launchAtLogin: Boolean(value.launchAtLogin),
     provider,
     codexExecutable:
@@ -125,5 +131,6 @@ module.exports = {
   defaultSettings,
   normalizeSettings,
   normalizeStore,
+  normalizeTheme,
   normalizeUiLanguage
 };

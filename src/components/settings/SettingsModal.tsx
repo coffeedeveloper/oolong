@@ -4,6 +4,7 @@ import { getUiText } from "../../i18n";
 import type { PromptContext, Settings } from "../../types";
 import { createContextId } from "../../utils/context";
 import { shortcutFromKeyboardEvent } from "../../utils/shortcuts";
+import { applyTheme } from "../../utils/theme";
 import { ContextsSettingsSection } from "./ContextsSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { ProviderSettingsSection } from "./ProviderSettingsSection";
@@ -27,6 +28,8 @@ export function SettingsModal({
   const [contextError, setContextError] = useState("");
   const globalShortcutButtonRef = useRef<HTMLButtonElement>(null);
   const clipboardShortcutButtonRef = useRef<HTMLButtonElement>(null);
+  const initialThemeRef = useRef(settings.theme);
+  const themeCommittedRef = useRef(false);
   const text = getUiText(draft.uiLanguage);
   const settingsTabs: Array<{ id: SettingsTab; label: string }> = [
     { id: "general", label: text.tabs.general },
@@ -46,6 +49,19 @@ export function SettingsModal({
       clipboardShortcutButtonRef.current?.focus();
     }
   }, [recordingShortcut]);
+
+  useEffect(() => {
+    applyTheme(draft.theme);
+  }, [draft.theme]);
+
+  useEffect(
+    () => () => {
+      if (!themeCommittedRef.current) {
+        applyTheme(initialThemeRef.current);
+      }
+    },
+    []
+  );
 
   function updateShortcut(key: ShortcutSetting, shortcut: string) {
     setDraft((current) => ({ ...current, [key]: shortcut }));
@@ -133,6 +149,7 @@ export function SettingsModal({
     setSaving(true);
     try {
       await onSave(draft);
+      themeCommittedRef.current = true;
       onClose();
     } finally {
       setSaving(false);

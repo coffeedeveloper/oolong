@@ -1,5 +1,6 @@
 export type Provider = "codex" | "claude";
 export type UiLanguage = "en" | "zh";
+export type Theme = "cream" | "light" | "dark";
 
 export interface PromptContext {
   id: string;
@@ -9,6 +10,7 @@ export interface PromptContext {
 
 export interface Settings {
   uiLanguage: UiLanguage;
+  theme: Theme;
   launchAtLogin: boolean;
   provider: Provider;
   codexExecutable: string;

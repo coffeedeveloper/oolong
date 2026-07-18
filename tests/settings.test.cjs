@@ -5,6 +5,7 @@ const { defaultSettings, normalizeSettings, normalizeStore } = require("../elect
 test("normalizes settings and clamps numeric limits", () => {
   const settings = normalizeSettings({
     provider: "unknown",
+    theme: "neon",
     historyLimit: 999,
     providerTimeoutSeconds: 1,
     codexExecutable: "  /usr/local/bin/codex  ",
@@ -12,10 +13,17 @@ test("normalizes settings and clamps numeric limits", () => {
   });
 
   assert.equal(settings.provider, "codex");
+  assert.equal(settings.theme, defaultSettings.theme);
   assert.equal(settings.historyLimit, 500);
   assert.equal(settings.providerTimeoutSeconds, 10);
   assert.equal(settings.codexExecutable, "/usr/local/bin/codex");
   assert.equal(settings.codexReasoningEffort, defaultSettings.codexReasoningEffort);
+});
+
+test("preserves supported themes", () => {
+  assert.equal(normalizeSettings({ theme: "cream" }).theme, "cream");
+  assert.equal(normalizeSettings({ theme: "light" }).theme, "light");
+  assert.equal(normalizeSettings({ theme: "dark" }).theme, "dark");
 });
 
 test("deduplicates context IDs and limits context count", () => {
