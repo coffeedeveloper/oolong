@@ -1,5 +1,44 @@
 # Release Notes
 
+## v0.8.0
+
+Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.8.0
+
+oolong v0.8.0 adds selectable visual themes, including a new dark appearance, and protects history from accidental bulk deletion. It also refreshes the application toolchain and macOS runtime to current major versions.
+
+### Downloads
+
+- `oolong-0.8.0-arm64.dmg`
+- `oolong-0.8.0-arm64-mac.zip`
+
+### Included Features
+
+- Added Cream, Light, and Dark themes to General settings with live previews before saving.
+- Applied the selected theme consistently across the main window and menu-bar popover and persisted the choice between launches.
+- Added a confirmation dialog before clearing all history, with explicit destructive-action copy in English and Chinese.
+- Added keyboard-safe confirmation behavior with Cancel focused by default, trapped Tab navigation, Escape dismissal, and focus restoration.
+
+### Architecture And Maintenance
+
+- Added shared theme normalization so malformed or older settings safely fall back to the Cream theme.
+- Reworked renderer colors into reusable theme tokens for controls, surfaces, overlays, focus states, and destructive actions.
+- Updated React to 19.2, Electron to 43, Vite to 8, TypeScript to 7, electron-builder to 26, and related type and icon packages.
+- Updated the pnpm lockfile and Vite type declarations for the refreshed build toolchain.
+- Added settings tests covering all supported theme values.
+
+### Fixes And Reliability
+
+- Disabled history clearing when there are no entries to remove.
+- Prevented accidental history deletion from a single click and kept confirmation controls disabled while clearing is in progress.
+- Preserved keyboard focus within the destructive-action confirmation dialog and returned focus to the initiating control when cancelled.
+- Kept existing settings compatible when loading data created before theme selection was introduced.
+
+### Notes
+
+- This is an unsigned macOS build. macOS may require allowing the app manually from System Settings when opening it for the first time.
+- The current release targets Apple Silicon macOS (`arm64`).
+- oolong depends on locally installed provider CLIs. Install and authenticate Codex or Claude before using the corresponding provider.
+
 ## v0.7.0
 
 Published release: https://github.com/coffeedeveloper/oolong/releases/tag/v0.7.0
