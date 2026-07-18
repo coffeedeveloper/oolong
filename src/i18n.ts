@@ -96,6 +96,11 @@ export const translations = {
     history: {
       title: "History",
       clear: "Clear",
+      clearConfirmTitle: "Clear all history?",
+      clearConfirmDescription: "Every history entry will be permanently removed.",
+      cancelClear: "Cancel",
+      confirmClear: "Clear all",
+      clearing: "Clearing...",
       empty: "No history yet",
       untitled: "Untitled text",
       noOutput: "No output",
@@ -222,6 +227,11 @@ export const translations = {
     history: {
       title: "历史记录",
       clear: "清空",
+      clearConfirmTitle: "清空全部历史记录？",
+      clearConfirmDescription: "所有历史记录都将被永久删除，此操作无法撤销。",
+      cancelClear: "取消",
+      confirmClear: "全部清空",
+      clearing: "清空中...",
       empty: "暂无历史记录",
       untitled: "未命名文本",
       noOutput: "无输出",
