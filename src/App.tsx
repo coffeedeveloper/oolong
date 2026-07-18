@@ -22,6 +22,7 @@ import { formatText, getUiText, historyDisplayLabel } from "./i18n";
 import type { AvailableUpdate, HistoryEntry, Settings } from "./types";
 import { providerStatusText } from "./utils/provider";
 import { shortcutTitle } from "./utils/shortcuts";
+import { applyTheme } from "./utils/theme";
 
 function App() {
   const [selectedContextId, setSelectedContextId] = useState("translate");
@@ -117,6 +118,10 @@ function App() {
   useEffect(() => {
     activeContextIdRef.current = activeContext.id;
   }, [activeContext.id]);
+
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
 
   useEffect(() => {
     let mounted = true;

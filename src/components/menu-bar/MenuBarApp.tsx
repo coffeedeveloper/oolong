@@ -11,6 +11,7 @@ import {
   contextShortcutIndex,
   contextShortcutLabel
 } from "../../utils/shortcuts";
+import { applyTheme } from "../../utils/theme";
 import { MarkdownContent } from "../ui/MarkdownContent";
 
 export function MenuBarApp() {
@@ -61,6 +62,10 @@ export function MenuBarApp() {
       dispose();
     };
   }, []);
+
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
 
   useEffect(() => {
     if (!copied) {

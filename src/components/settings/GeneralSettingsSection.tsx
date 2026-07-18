@@ -1,5 +1,5 @@
 import { languageOptions } from "../../i18n";
-import type { Settings } from "../../types";
+import type { Settings, Theme } from "../../types";
 import type { SetSettingsDraft, SettingsText } from "./settingsTypes";
 
 export function GeneralSettingsSection({
@@ -11,6 +11,12 @@ export function GeneralSettingsSection({
   setDraft: SetSettingsDraft;
   text: SettingsText;
 }) {
+  const themeOptions: Array<{ value: Theme; label: string }> = [
+    { value: "cream", label: text.general.themeCream },
+    { value: "light", label: text.general.themeLight },
+    { value: "dark", label: text.general.themeDark }
+  ];
+
   return (
     <section className="settings-section">
       <div className="section-heading">
@@ -19,6 +25,37 @@ export function GeneralSettingsSection({
           <p>{text.general.description}</p>
         </div>
       </div>
+
+      <fieldset className="theme-field">
+        <legend>{text.general.theme}</legend>
+        <p>{text.general.themeDescription}</p>
+        <div className="theme-options">
+          {themeOptions.map((option) => (
+            <label
+              key={option.value}
+              className={`theme-option ${draft.theme === option.value ? "selected" : ""}`}
+            >
+              <input
+                type="radio"
+                name="theme"
+                value={option.value}
+                checked={draft.theme === option.value}
+                onChange={() =>
+                  setDraft((current) => ({ ...current, theme: option.value }))
+                }
+              />
+              <span className={`theme-preview theme-preview-${option.value}`} aria-hidden="true">
+                <span className="theme-preview-sidebar" />
+                <span className="theme-preview-content">
+                  <span />
+                  <span />
+                </span>
+              </span>
+              <span className="theme-option-label">{option.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <label className="checkbox-field">
         <input

@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import { defaultContexts, fallbackSettings } from "./config/defaults";
 import { contextDisplayLabel, getUiText, normalizeUiLanguage } from "./i18n";
+import { normalizeTheme } from "./utils/theme";
 
 const storageKey = "oolong-preview-store";
 const latestReleaseUrl = "https://github.com/coffeedeveloper/oolong/releases/latest";
@@ -90,6 +91,7 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
     ...fallbackSettings,
     ...value,
     uiLanguage: normalizeUiLanguage(value.uiLanguage),
+    theme: normalizeTheme(value.theme),
     launchAtLogin: Boolean(value.launchAtLogin),
     provider: value.provider === "claude" ? "claude" : "codex",
     codexExecutable:
