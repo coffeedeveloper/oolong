@@ -12,7 +12,7 @@ export function GeneralSettingsSection({
   text: SettingsText;
 }) {
   const themeOptions: Array<{ value: Theme; label: string }> = [
-    { value: "cream", label: text.general.themeCream },
+    { value: "system", label: text.general.themeSystem },
     { value: "light", label: text.general.themeLight },
     { value: "dark", label: text.general.themeDark }
   ];

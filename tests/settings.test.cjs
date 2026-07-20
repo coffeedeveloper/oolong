@@ -21,9 +21,13 @@ test("normalizes settings and clamps numeric limits", () => {
 });
 
 test("preserves supported themes", () => {
-  assert.equal(normalizeSettings({ theme: "cream" }).theme, "cream");
+  assert.equal(normalizeSettings({ theme: "system" }).theme, "system");
   assert.equal(normalizeSettings({ theme: "light" }).theme, "light");
   assert.equal(normalizeSettings({ theme: "dark" }).theme, "dark");
+});
+
+test("migrates the legacy cream theme to light", () => {
+  assert.equal(normalizeSettings({ theme: "cream" }).theme, "light");
 });
 
 test("deduplicates context IDs and limits context count", () => {
