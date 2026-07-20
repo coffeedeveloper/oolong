@@ -1,6 +1,6 @@
 {
   "uiLanguage": "en",
-  "theme": "cream",
+  "theme": "system",
   "launchAtLogin": false,
   "provider": "codex",
   "codexExecutable": "codex",

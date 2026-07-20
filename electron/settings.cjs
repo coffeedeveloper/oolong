@@ -2,13 +2,17 @@ const defaultSettings = require("../shared/settings-defaults.json");
 const defaultContexts = defaultSettings.contexts;
 
 const allowedCodexReasoningEfforts = new Set(["low", "medium", "high", "xhigh"]);
-const allowedThemes = new Set(["cream", "light", "dark"]);
+const allowedThemes = new Set(["system", "light", "dark"]);
 
 function normalizeUiLanguage(value) {
   return value === "zh" ? "zh" : "en";
 }
 
 function normalizeTheme(value) {
+  if (value === "cream") {
+    return "light";
+  }
+
   return allowedThemes.has(value) ? value : defaultSettings.theme;
 }
 

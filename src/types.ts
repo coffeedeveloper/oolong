@@ -1,6 +1,6 @@
 export type Provider = "codex" | "claude";
 export type UiLanguage = "en" | "zh";
-export type Theme = "cream" | "light" | "dark";
+export type Theme = "system" | "light" | "dark";
 
 export interface PromptContext {
   id: string;

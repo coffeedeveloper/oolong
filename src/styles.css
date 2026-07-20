@@ -71,70 +71,6 @@
   scrollbar-color: var(--border-control) transparent;
 }
 
-:root[data-theme="light"] {
-  --app-background: #edf2f7;
-  --surface: #f8fafc;
-  --surface-raised: #ffffff;
-  --control-background: #ffffff;
-  --hover-background: #e8eef5;
-  --selected-background: #e6edf6;
-  --subtle-background: #e2e8f0;
-  --sidebar-background: #f4f7fb;
-  --notice-background: #eef6ff;
-  --shimmer-highlight: #f8fbff;
-  --text: #182235;
-  --text-strong: #111827;
-  --input-text: #111827;
-  --text-control: #26364a;
-  --text-secondary: #344256;
-  --text-muted: #526174;
-  --text-subtle: #7a8797;
-  --text-disabled: #738196;
-  --text-notice-control: #344256;
-  --text-tab: #536276;
-  --text-meta: #69788b;
-  --text-description: #607086;
-  --text-pill: #58687c;
-  --border: #d8e0ea;
-  --border-soft: #e0e6ed;
-  --border-control: #cbd5e1;
-  --border-strong: #c1ccd9;
-  --border-hover: #aebccc;
-  --border-pill: #d4dce6;
-  --border-notice: #c7d9ed;
-  --border-notice-control: #b5c9df;
-  --border-notice-hover: #91abc5;
-  --input-border: #334155;
-  --accent: #2563eb;
-  --focus: #3b82f6;
-  --focus-ring: rgba(59, 130, 246, 0.25);
-  --focus-ring-soft: rgba(59, 130, 246, 0.22);
-  --focus-text: #1d4ed8;
-  --primary-background: #1f2937;
-  --primary-hover: #374151;
-  --primary-text: #ffffff;
-  --selection-background: #111827;
-  --selection-text: #ffffff;
-  --tooltip-background: #172033;
-  --tooltip-text: #ffffff;
-  --code-background: #172033;
-  --code-text: #f8fafc;
-  --link: #2563eb;
-  --error: #c0262d;
-  --error-strong: #c7353d;
-  --danger-background: #c0262d;
-  --danger-hover: #991b1b;
-  --danger-text: #ffffff;
-  --overlay: rgba(15, 23, 42, 0.38);
-  --titlebar-background: rgba(248, 250, 252, 0.9);
-  --popover-shadow: rgba(31, 41, 55, 0.14);
-  --floating-shadow: rgba(15, 23, 42, 0.18);
-  --floating-shadow-soft: rgba(15, 23, 42, 0.1);
-  --modal-shadow: rgba(15, 23, 42, 0.22);
-  --menu-shadow: rgba(15, 23, 42, 0.18);
-  --menu-shadow-soft: rgba(15, 23, 42, 0.08);
-}
-
 :root[data-theme="dark"] {
   --app-background: #0f1115;
   --surface: #171a20;
@@ -1635,20 +1571,22 @@ button {
   padding: 5px;
 }
 
-.theme-preview-light {
-  --preview-background: #f8fafc;
-  --preview-sidebar: #edf2f7;
-  --preview-card: #ffffff;
-  --preview-border: #cbd5e1;
-  --preview-accent: #2563eb;
-}
-
 .theme-preview-dark {
   --preview-background: #171a20;
   --preview-sidebar: #0f1115;
   --preview-card: #242933;
   --preview-border: #46515f;
   --preview-accent: #e6a269;
+}
+
+@media (prefers-color-scheme: dark) {
+  .theme-preview-system {
+    --preview-background: #171a20;
+    --preview-sidebar: #0f1115;
+    --preview-card: #242933;
+    --preview-border: #46515f;
+    --preview-accent: #e6a269;
+  }
 }
 
 .theme-preview-sidebar {
