@@ -56,7 +56,7 @@ test("builds Claude arguments without shell interpolation", () => {
   });
 });
 
-test("builds Cursor print arguments with plain text output", () => {
+test("builds trusted read-only Cursor print arguments with plain text output", () => {
   const result = providerCommand(
     {
       provider: "cursor",
@@ -68,9 +68,20 @@ test("builds Cursor print arguments with plain text output", () => {
 
   assert.deepEqual(result, {
     command: "agent",
-    args: ["-p", "--output-format", "text", "translate this"],
+    args: [
+      "-p",
+      "--trust",
+      "--mode",
+      "ask",
+      "--output-format",
+      "text",
+      "translate this"
+    ],
     stdin: null
   });
+  assert.equal(result.args.includes("--force"), false);
+  assert.equal(result.args.includes("--yolo"), false);
+  assert.equal(result.args.includes("-f"), false);
 });
 
 test("adds only the configured Cursor model argument", () => {
@@ -85,6 +96,9 @@ test("adds only the configured Cursor model argument", () => {
 
   assert.deepEqual(result.args, [
     "-p",
+    "--trust",
+    "--mode",
+    "ask",
     "--output-format",
     "text",
     "--model",

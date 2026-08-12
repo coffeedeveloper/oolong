@@ -98,6 +98,8 @@ The global open and clipboard shortcuts can be changed or cleared from **Setting
 
 Proxy settings populate lowercase and uppercase variants of `http_proxy`, `https_proxy`, and `all_proxy` for the child process. Provider command arguments are intentionally restricted; arbitrary flags and permission-bypass options are not exposed through Settings.
 
+Cursor runs non-interactively with `--trust --mode ask`. The trust flag skips the workspace prompt that cannot be answered from the app, while Ask mode keeps the text-processing run read-only. oolong never passes Cursor's `--force` or `--yolo` flags.
+
 ## macOS Service
 
 On launch, oolong installs the `oolong.translate content` workflow into the current user's macOS Services directory. In an application that supports text services:

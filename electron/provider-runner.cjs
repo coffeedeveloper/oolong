@@ -23,7 +23,7 @@ function providerCommand(settings, prompt) {
   }
 
   if (settings.provider === "cursor") {
-    const args = ["-p", "--output-format", "text"];
+    const args = ["-p", "--trust", "--mode", "ask", "--output-format", "text"];
     if (settings.cursorModel) {
       args.push("--model", settings.cursorModel);
     }
