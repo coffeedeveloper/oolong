@@ -22,6 +22,20 @@ function providerCommand(settings, prompt) {
     };
   }
 
+  if (settings.provider === "cursor") {
+    const args = ["-p", "--output-format", "text"];
+    if (settings.cursorModel) {
+      args.push("--model", settings.cursorModel);
+    }
+    args.push(prompt);
+
+    return {
+      command: settings.cursorExecutable,
+      args,
+      stdin: null
+    };
+  }
+
   const args = ["exec", "--skip-git-repo-check"];
   if (settings.codexReasoningEffort) {
     args.push("-c", `model_reasoning_effort="${settings.codexReasoningEffort}"`);

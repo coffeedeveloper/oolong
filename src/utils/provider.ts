@@ -2,7 +2,11 @@ import type { Settings } from "../types";
 
 export function providerStatusText(settings: Settings) {
   const model =
-    settings.provider === "claude" ? settings.claudeModel.trim() : settings.codexModel.trim();
+    settings.provider === "codex"
+      ? settings.codexModel.trim()
+      : settings.provider === "claude"
+        ? settings.claudeModel.trim()
+        : settings.cursorModel.trim();
   const modelText = model || "default";
 
   if (settings.provider === "codex") {
@@ -10,5 +14,5 @@ export function providerStatusText(settings: Settings) {
     return `codex - ${modelText} - ${effort}`;
   }
 
-  return `claude - ${modelText}`;
+  return `${settings.provider} - ${modelText}`;
 }

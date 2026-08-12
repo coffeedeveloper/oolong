@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  A focused macOS desktop client for translating, rewriting, and transforming short text with locally installed Codex or Claude CLIs.
+  A focused macOS desktop client for translating, rewriting, and transforming short text with locally installed Codex, Claude, or Cursor CLIs.
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@ oolong provides a native workspace for repeatable text actions: choose a context
 ## What oolong does
 
 - **Reusable contexts**: define named actions and prompts for translation, English polishing, release notes, or project-specific transformations.
-- **Codex and Claude providers**: choose which local CLI process oolong invokes and configure its executable, model, and supported options.
+- **Codex, Claude, and Cursor providers**: choose which local CLI process oolong invokes and configure its executable, model, and supported options.
 - **Selection lookup tools**: right-click selected text to search with the built-in macOS Dictionary or 网易有道翻译.
 - **Local history**: retain recent inputs and outputs on this Mac with a configurable limit.
 - **System-wide shortcuts**: open oolong or run the current clipboard text without switching applications first.
@@ -44,9 +44,10 @@ oolong does not bundle an AI provider. Install and authenticate at least one sup
 ```bash
 codex --version
 claude --version
+agent --version
 ```
 
-Only the provider selected in Settings is required. If oolong cannot find a CLI that works in Terminal, use `command -v codex` or `command -v claude` and enter the resulting absolute path in **Settings → Provider**. macOS GUI applications do not always inherit the same `PATH` as an interactive shell.
+Only the provider selected in Settings is required. If oolong cannot find a CLI that works in Terminal, use `command -v codex`, `command -v claude`, or `command -v agent` and enter the resulting absolute path in **Settings → Provider**. macOS GUI applications do not always inherit the same `PATH` as an interactive shell.
 
 ## Use
 
@@ -91,7 +92,7 @@ The global open and clipboard shortcuts can be changed or cleared from **Setting
 | --- | --- |
 | General | UI language, launch at login, local history limit, provider timeout |
 | Shortcuts | Global open and clipboard query shortcuts |
-| Provider | Active provider, executable path, model, Codex reasoning effort and profile |
+| Provider | Active Codex/Claude/Cursor provider, executable path, model, Codex reasoning effort and profile |
 | Contexts | Main-screen action labels and the prompts sent to the provider |
 | Proxy | Optional HTTP and all-proxy values injected into provider CLI processes |
 
@@ -111,7 +112,7 @@ oolong opens, places the selected text in the input, and runs the `translate` co
 
 - Settings and history are stored locally as JSON in Electron's per-user application data directory. They are not encrypted by oolong.
 - Provider prompts are passed to the selected local CLI process. Whether that CLI sends data over the network, and how it handles authentication and retention, is controlled by the provider and your CLI configuration.
-- oolong does not store Codex or Claude account credentials. Authentication remains with the provider CLI.
+- oolong does not store Codex, Claude, or Cursor account credentials. Authentication remains with the provider CLI.
 - Dictionary and Youdao queries leave oolong and are handled by the corresponding macOS application.
 - Packaged builds query GitHub's public Releases API once at startup to detect newer versions. Downloading an update opens the project's GitHub Release page.
 - Proxy URLs are user-controlled settings and may be stored locally; avoid embedding credentials unless required.

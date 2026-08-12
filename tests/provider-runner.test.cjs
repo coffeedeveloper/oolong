@@ -56,6 +56,43 @@ test("builds Claude arguments without shell interpolation", () => {
   });
 });
 
+test("builds Cursor print arguments with plain text output", () => {
+  const result = providerCommand(
+    {
+      provider: "cursor",
+      cursorExecutable: "agent",
+      cursorModel: ""
+    },
+    "translate this"
+  );
+
+  assert.deepEqual(result, {
+    command: "agent",
+    args: ["-p", "--output-format", "text", "translate this"],
+    stdin: null
+  });
+});
+
+test("adds only the configured Cursor model argument", () => {
+  const result = providerCommand(
+    {
+      provider: "cursor",
+      cursorExecutable: "agent",
+      cursorModel: "custom-model"
+    },
+    "translate this"
+  );
+
+  assert.deepEqual(result.args, [
+    "-p",
+    "--output-format",
+    "text",
+    "--model",
+    "custom-model",
+    "translate this"
+  ]);
+});
+
 test("applies proxy variables in both common casings", () => {
   const env = applyProxyEnv(
     {},
