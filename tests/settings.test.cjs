@@ -26,6 +26,18 @@ test("preserves supported themes", () => {
   assert.equal(normalizeSettings({ theme: "dark" }).theme, "dark");
 });
 
+test("normalizes Cursor provider settings", () => {
+  const settings = normalizeSettings({
+    provider: "cursor",
+    cursorExecutable: "  /usr/local/bin/agent  ",
+    cursorModel: "  custom-model  "
+  });
+
+  assert.equal(settings.provider, "cursor");
+  assert.equal(settings.cursorExecutable, "/usr/local/bin/agent");
+  assert.equal(settings.cursorModel, "custom-model");
+});
+
 test("migrates the legacy cream theme to light", () => {
   assert.equal(normalizeSettings({ theme: "cream" }).theme, "light");
 });

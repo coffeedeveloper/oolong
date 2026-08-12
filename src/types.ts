@@ -1,4 +1,4 @@
-export type Provider = "codex" | "claude";
+export type Provider = "codex" | "claude" | "cursor";
 export type UiLanguage = "en" | "zh";
 export type Theme = "system" | "light" | "dark";
 
@@ -19,6 +19,8 @@ export interface Settings {
   codexProfile: string;
   claudeExecutable: string;
   claudeModel: string;
+  cursorExecutable: string;
+  cursorModel: string;
   globalShortcut: string;
   clipboardShortcut: string;
   historyLimit: number;

@@ -1,4 +1,8 @@
-import { claudeModelOptions, codexModelOptions } from "../../config/providerModels";
+import {
+  claudeModelOptions,
+  codexModelOptions,
+  cursorModelOptions
+} from "../../config/providerModels";
 import type { Settings } from "../../types";
 import { ModelPicker } from "./ModelPicker";
 import type { SetSettingsDraft, SettingsText } from "./settingsTypes";
@@ -38,6 +42,13 @@ export function ProviderSettingsSection({
           >
             claude
           </button>
+          <button
+            type="button"
+            className={draft.provider === "cursor" ? "active" : ""}
+            onClick={() => setDraft((current) => ({ ...current, provider: "cursor" }))}
+          >
+            cursor
+          </button>
         </div>
       </label>
 
@@ -61,6 +72,7 @@ export function ProviderSettingsSection({
             <label className="field">
               <span>{text.provider.model}</span>
               <ModelPicker
+                key="codex-model"
                 value={draft.codexModel}
                 options={codexModelOptions}
                 text={text}
@@ -98,7 +110,7 @@ export function ProviderSettingsSection({
             />
           </label>
         </section>
-      ) : (
+      ) : draft.provider === "claude" ? (
         <section className="provider-settings">
           <label className="field">
             <span>{text.provider.claudeExecutable}</span>
@@ -117,10 +129,38 @@ export function ProviderSettingsSection({
           <label className="field">
             <span>{text.provider.model}</span>
             <ModelPicker
+              key="claude-model"
               value={draft.claudeModel}
               options={claudeModelOptions}
               text={text}
               onChange={(model) => setDraft((current) => ({ ...current, claudeModel: model }))}
+            />
+          </label>
+        </section>
+      ) : (
+        <section className="provider-settings">
+          <label className="field">
+            <span>{text.provider.cursorExecutable}</span>
+            <input
+              value={draft.cursorExecutable}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  cursorExecutable: event.target.value
+                }))
+              }
+              placeholder="agent"
+            />
+          </label>
+
+          <label className="field">
+            <span>{text.provider.model}</span>
+            <ModelPicker
+              key="cursor-model"
+              value={draft.cursorModel}
+              options={cursorModelOptions}
+              text={text}
+              onChange={(model) => setDraft((current) => ({ ...current, cursorModel: model }))}
             />
           </label>
         </section>

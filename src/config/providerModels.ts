@@ -20,3 +20,5 @@ export const claudeModelOptions: ModelOption[] = [
   { value: "claude-sonnet-5", label: "Claude Sonnet 5" },
   { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" }
 ];
+
+export const cursorModelOptions: ModelOption[] = [];

@@ -93,7 +93,8 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
     uiLanguage: normalizeUiLanguage(value.uiLanguage),
     theme: normalizeTheme(value.theme),
     launchAtLogin: Boolean(value.launchAtLogin),
-    provider: value.provider === "claude" ? "claude" : "codex",
+    provider:
+      value.provider === "claude" || value.provider === "cursor" ? value.provider : "codex",
     codexExecutable:
       typeof value.codexExecutable === "string" && value.codexExecutable.trim()
         ? value.codexExecutable.trim()
@@ -110,6 +111,11 @@ function normalizeSettings(value: Partial<Settings> = {}): Settings {
         ? value.claudeExecutable.trim()
         : fallbackSettings.claudeExecutable,
     claudeModel: typeof value.claudeModel === "string" ? value.claudeModel.trim() : "",
+    cursorExecutable:
+      typeof value.cursorExecutable === "string" && value.cursorExecutable.trim()
+        ? value.cursorExecutable.trim()
+        : fallbackSettings.cursorExecutable,
+    cursorModel: typeof value.cursorModel === "string" ? value.cursorModel.trim() : "",
     globalShortcut:
       typeof value.globalShortcut === "string" && value.globalShortcut.trim()
         ? value.globalShortcut.trim()

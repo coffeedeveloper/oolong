@@ -9,6 +9,8 @@
   "codexProfile": "",
   "claudeExecutable": "claude",
   "claudeModel": "",
+  "cursorExecutable": "agent",
+  "cursorModel": "",
   "globalShortcut": "CommandOrControl+Shift+O",
   "clipboardShortcut": "CommandOrControl+Alt+O",
   "historyLimit": 100,
