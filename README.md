@@ -11,6 +11,8 @@
 <p align="center">
   <a href="https://github.com/coffeedeveloper/oolong/releases/latest"><strong>Download the latest release</strong></a>
   ·
+  <a href="https://coffeedeveloper.github.io/oolong/">Website</a>
+  ·
   <a href="RELEASE.md">Release notes</a>
 </p>
 
