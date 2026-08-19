@@ -147,6 +147,12 @@ gh run watch <run-id> --exit-status
 gh release view vX.Y.Z
 ```
 
+After the workflow succeeds, replace the generated GitHub Release body with the matching detailed `RELEASE.md` entry plus a full changelog link. Write the final Markdown to a temporary notes file, then apply it with:
+
+```bash
+gh release edit vX.Y.Z --notes-file /tmp/oolong-vX.Y.Z-notes.md
+```
+
 Confirm the workflow succeeded, the release is neither a draft nor a prerelease, both assets are uploaded, the release is the repository's latest release, and the tag and `origin/main` point to the intended release commit. Never move or reuse a published version tag. Rerun a transiently failed workflow; if code or release metadata must change after publication, prepare the next patch release instead.
 
 ## Security & Configuration Tips
